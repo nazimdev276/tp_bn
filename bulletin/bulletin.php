@@ -168,23 +168,8 @@ require __DIR__ . '/../includes/header.php';
     <input type="hidden" name="etudiant_id" id="etudiant_id" value="<?= h($etudiant['id'] ?? '') ?>">
     <input type="hidden" name="note_id" id="note_id" value="<?= h($currentNoteId) ?>">
 
-    <!-- Cadre de la photo de l'étudiant -->
-    <div id="cadre-photo">
-        <?php if (!empty($etudiant['photo']) && file_exists(__DIR__ . '/../uploads/' . $etudiant['photo'])): ?>
-            <img id="apercu" src="<?= $base ?>uploads/<?= h($etudiant['photo']) ?>" alt="Photo de <?= h($etudiant['nom_prenom']) ?>" style="display: block;">
-        <?php else: ?>
-            <img id="apercu" alt="Aperçu de la photo" style="display: none;">
-            <div id="photo-placeholder" style="padding: 30px 10px; color: var(--text-muted); font-size: 13px;">
-                <?php if ($etudiant): ?>
-                    <em>Aucune photo</em>
-                <?php else: ?>
-                    <em>Photo étudiant</em>
-                <?php endif; ?>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <table class="formulaire">
+    <div class="bulletin-student-header">
+        <table class="formulaire bulletin-student-info">
         <tr>
             <td>Numéro d'étudiant :</td>
             <td>
@@ -212,6 +197,24 @@ require __DIR__ . '/../includes/header.php';
                 <input type="text" name="filiere" id="filiere" size="20" value="<?= h($etudiant['filiere'] ?? '') ?>" readonly placeholder="ex: 3ISIL">
             </td>
         </tr>
+        </table>
+        <div id="cadre-photo" class="bulletin-student-photo">
+            <?php if (!empty($etudiant['photo']) && file_exists(__DIR__ . '/../uploads/' . $etudiant['photo'])): ?>
+                <img id="apercu" src="<?= $base ?>uploads/<?= h($etudiant['photo']) ?>" alt="Photo de <?= h($etudiant['nom_prenom']) ?>" style="display: block;">
+            <?php else: ?>
+                <img id="apercu" alt="Aperçu de la photo" style="display: none;">
+                <div id="photo-placeholder" style="padding: 30px 10px; color: var(--text-muted); font-size: 13px;">
+                    <?php if ($etudiant): ?>
+                        <em>Aucune photo</em>
+                    <?php else: ?>
+                        <em>Photo étudiant</em>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <table class="formulaire">
         <tr>
             <td>Module :</td>
             <td>
@@ -261,7 +264,8 @@ require __DIR__ . '/../includes/header.php';
         <button type="submit" name="action" value="enregistrer" id="btn-enregistrer-note">Enregistrer</button>
         <button type="submit" name="action" value="modifier" formaction="enregistrer.php?action=modifier" id="btn-modifier-note">Modifier</button>
         <button type="submit" name="action" value="supprimer" formaction="supprimer.php" formnovalidate onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette note ?');" id="btn-supprimer-note" style="background: #fef2f2; color: #dc2626; border-color: #fecaca;">Supprimer</button>
-        <button type="submit" formaction="liste.php" formmethod="get" formnovalidate>Affichage Liste</button>
+        <button type="submit" formaction="liste.php" formmethod="get" formnovalidate>Afficher Liste</button>
+        <button type="submit" formaction="afficher_bulletin.php" formmethod="get" formnovalidate>Afficher Bulletin</button>
         <button type="reset" id="btn-reset-bulletin">Réinitialiser</button>
     </div>
 </form>

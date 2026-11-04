@@ -195,4 +195,52 @@ CREATE TABLE IF NOT EXISTS note (
   CONSTRAINT uk_etudiant_module UNIQUE (etudiant_id, module_id)
 ) ENGINE=InnoDB;
 
+-- Jeu de démonstration du bulletin (ajouté uniquement si les numéros/codes n'existent pas)
+INSERT INTO personne
+  (numero, civilite, nom_prenom, adresse, code_postal, localite, pays, filiere, nationalite_code)
+SELECT demo.numero, demo.civilite, demo.nom_prenom, 'Adresse de démonstration', '00000',
+     'Sidi Bel Abbès', 'Algérie', demo.filiere, 'DZ'
+FROM (
+  SELECT '15' AS numero, 'Monsieur' AS civilite, 'Démo Bulletin 15' AS nom_prenom, '3ISIL' AS filiere
+  UNION ALL SELECT '16', 'Madame', 'Démo Bulletin 16', '3ISIL'
+  UNION ALL SELECT '17', 'Monsieur', 'Démo Bulletin 17', '3ISIL'
+  UNION ALL SELECT '18', 'Madame', 'Démo Bulletin 18', '2SC'
+  UNION ALL SELECT '19', 'Monsieur', 'Démo Bulletin 19', '3SI'
+) AS demo
+WHERE NOT EXISTS (
+  SELECT 1 FROM personne p WHERE p.numero = demo.numero
+);
 
+INSERT INTO module (code_module, designation, coefficient, volume_horaire, filiere)
+SELECT demo.code_module, demo.designation, demo.coefficient, 45, demo.filiere
+FROM (
+  SELECT 'DEMO-BDD' AS code_module, 'Base de données' AS designation, 4 AS coefficient, '3ISIL' AS filiere
+  UNION ALL SELECT 'DEMO-POO', 'Programmation orientée objet', 3, '3ISIL'
+  UNION ALL SELECT 'DEMO-ALG', 'Algorithmique', 3, '3ISIL'
+  UNION ALL SELECT 'DEMO-SYS', 'Systèmes', 3, '3ISIL'
+  UNION ALL SELECT 'DEMO-WEB', 'Développement web', 4, '3ISIL'
+  UNION ALL SELECT 'DEMO-MATH', 'Mathématiques', 3, '2SC'
+  UNION ALL SELECT 'DEMO-RES', 'Réseaux', 4, '3SI'
+) AS demo
+WHERE NOT EXISTS (
+  SELECT 1 FROM module m WHERE m.code_module = demo.code_module
+);
+
+INSERT IGNORE INTO note (etudiant_id, module_id, note)
+SELECT p.id, m.id, demo.note
+FROM (
+  SELECT '15' AS numero, 'Démo Bulletin 15' AS nom_prenom, 'DEMO-BDD' AS code_module, 15.00 AS note
+  UNION ALL SELECT '15', 'Démo Bulletin 15', 'DEMO-POO', 16.00
+  UNION ALL SELECT '15', 'Démo Bulletin 15', 'DEMO-ALG', 15.00
+  UNION ALL SELECT '15', 'Démo Bulletin 15', 'DEMO-SYS', 17.00
+  UNION ALL SELECT '15', 'Démo Bulletin 15', 'DEMO-WEB', 14.00
+  UNION ALL SELECT '16', 'Démo Bulletin 16', 'DEMO-BDD', 12.00
+  UNION ALL SELECT '16', 'Démo Bulletin 16', 'DEMO-POO', 8.00
+  UNION ALL SELECT '16', 'Démo Bulletin 16', 'DEMO-WEB', 17.00
+  UNION ALL SELECT '17', 'Démo Bulletin 17', 'DEMO-BDD', 9.00
+  UNION ALL SELECT '17', 'Démo Bulletin 17', 'DEMO-ALG', 14.00
+  UNION ALL SELECT '18', 'Démo Bulletin 18', 'DEMO-MATH', 18.00
+  UNION ALL SELECT '19', 'Démo Bulletin 19', 'DEMO-RES', 11.00
+) AS demo
+JOIN personne p ON p.numero = demo.numero AND p.nom_prenom = demo.nom_prenom
+JOIN module m ON m.code_module = demo.code_module;

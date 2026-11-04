@@ -99,16 +99,12 @@ require __DIR__ . '/../includes/header.php';
     <table class="liste">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Photo</th>
-                <th>N°</th>
-                <th>Étudiant</th>
+                <th>Num_Etudiant</th>
                 <th>Filière</th>
-                <th>Module</th>
-                <th>Code</th>
-                <th>Coeff</th>
-                <th>Note / 20</th>
-                <th>Date</th>
+                <th>Nom_module</th>
+                <th>code_module</th>
+                <th>coefficient</th>
+                <th>Note</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -117,21 +113,9 @@ require __DIR__ . '/../includes/header.php';
                 $noteVal = (float)$n['note'];
             ?>
                 <tr>
-                    <td><?= h($n['note_id']) ?></td>
-                    <td style="text-align: center; width: 45px;">
-                        <?php if (!empty($n['photo']) && file_exists(__DIR__ . '/../uploads/' . $n['photo'])): ?>
-                            <img src="../uploads/<?= h($n['photo']) ?>" alt="Photo" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: inline-block;">
-                        <?php else: ?>
-                            <span style="color: var(--text-muted); font-size: 11px;">—</span>
-                        <?php endif; ?>
-                    </td>
                     <td><?= h($n['numero']) ?></td>
-                    <td>
-                        <strong><?= h($n['nom_prenom']) ?></strong>
-                        <br><span style="font-size: 11px; color: var(--text-muted);"><?= h($n['civilite']) ?></span>
-                    </td>
                     <td><?= h($n['filiere'] ?: '—') ?></td>
-                    <td><strong><?= h($n['designation']) ?></strong></td>
+                    <td><?= h($n['designation']) ?></td>
                     <td><?= h($n['code_module']) ?></td>
                     <td><?= h($n['coefficient']) ?></td>
                     <td>
@@ -139,11 +123,10 @@ require __DIR__ . '/../includes/header.php';
                             <?= number_format($noteVal, 2, ',', ' ') ?>
                         </strong>
                     </td>
-                    <td style="font-size: 12px; color: var(--text-muted);"><?= h(substr($n['date_saisie'], 0, 10)) ?></td>
                     <td>
                         <a href="bulletin.php?id=<?= h($n['etudiant_id']) ?>&module_id=<?= h($n['module_id']) ?>&note_id=<?= h($n['note_id']) ?>">Modifier</a>
                         &nbsp;|&nbsp;
-                        <a href="bulletin.php?id=<?= h($n['etudiant_id']) ?>">Bulletin</a>
+                        <a href="afficher_bulletin.php?numero=<?= h(urlencode((string)$n['numero'])) ?>">Bulletin</a>
                         &nbsp;|&nbsp;
                         <form method="post" action="supprimer.php" style="display: inline;" onsubmit="return confirm('Supprimer définitivement la note de <?= h($n['nom_prenom']) ?> en <?= h($n['designation']) ?> ?');">
                             <input type="hidden" name="id" value="<?= h($n['note_id']) ?>">
