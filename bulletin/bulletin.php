@@ -4,29 +4,13 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/fonctions.php';
 require_once __DIR__ . '/../includes/donnees.php';
 
-// Création de la table note si elle n'existe pas encore (idempotent)
-try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS note (
-      id          INT AUTO_INCREMENT PRIMARY KEY,
-      etudiant_id INT NOT NULL,
-      module_id   INT NOT NULL,
-      note        DECIMAL(4, 2) NOT NULL,
-      date_saisie TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      CONSTRAINT fk_note_etudiant
-        FOREIGN KEY (etudiant_id) REFERENCES personne(id)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-      CONSTRAINT fk_note_module
-        FOREIGN KEY (module_id) REFERENCES module(id)
-        ON UPDATE CASCADE ON DELETE RESTRICT,
-      CONSTRAINT uk_etudiant_module UNIQUE (etudiant_id, module_id)
-    ) ENGINE=InnoDB");
-} catch (Exception $e) {
-    // Si la table existe déjà ou contraintes déjà présentes
-}
+assurer_schema_note($pdo);
 
 // Chargement des modules depuis la base de données
 $stmtModules = $pdo->query('SELECT id, code_module, designation, coefficient, filiere FROM module ORDER BY designation ASC');
 $modules = $stmtModules ? $stmtModules->fetchAll() : [];
+$stmtNationalites = $pdo->query('SELECT code, libelle FROM nationalite ORDER BY libelle ASC');
+$nationalites = $stmtNationalites->fetchAll();
 
 // Recherche d'un étudiant (par ID ou Numéro)
 $termeRecherche = trim((string)($_GET['recherche'] ?? $_GET['id'] ?? $_GET['etudiant_id'] ?? ''));
@@ -59,10 +43,12 @@ if ($termeRecherche !== '') {
 
         // Récupérer les notes existantes de l'étudiant
         $stmtNotes = $pdo->prepare('
-            SELECT n.id AS note_id, n.note, n.date_saisie,
+            SELECT n.id AS note_id, n.note, n.date_saisie, n.nationalite_code,
+                   nat.libelle AS nationalite,
                    m.id AS module_id, m.code_module, m.designation, m.coefficient
             FROM note n
             JOIN module m ON m.id = n.module_id
+            LEFT JOIN nationalite nat ON nat.code = n.nationalite_code
             WHERE n.etudiant_id = :eid
             ORDER BY m.designation ASC
         ');
@@ -82,7 +68,7 @@ $selectedModuleId = isset($_GET['module_id']) ? (int)$_GET['module_id'] : 0;
 $noteIdParam      = isset($_GET['note_id']) ? (int)$_GET['note_id'] : 0;
 
 if ($noteIdParam > 0 && empty($selectedModuleId)) {
-    $stmtFindNote = $pdo->prepare('SELECT etudiant_id, module_id, note FROM note WHERE id = :id');
+    $stmtFindNote = $pdo->prepare('SELECT etudiant_id, module_id, note, nationalite_code FROM note WHERE id = :id');
     $stmtFindNote->execute([':id' => $noteIdParam]);
     $noteData = $stmtFindNote->fetch();
     if ($noteData) {
@@ -94,10 +80,12 @@ if ($noteIdParam > 0 && empty($selectedModuleId)) {
             if ($etudiant) {
                 // Recharger les notes
                 $stmtNotes = $pdo->prepare('
-                    SELECT n.id AS note_id, n.note, n.date_saisie,
+                    SELECT n.id AS note_id, n.note, n.date_saisie, n.nationalite_code,
+                           nat.libelle AS nationalite,
                            m.id AS module_id, m.code_module, m.designation, m.coefficient
                     FROM note n
                     JOIN module m ON m.id = n.module_id
+                    LEFT JOIN nationalite nat ON nat.code = n.nationalite_code
                     WHERE n.etudiant_id = :eid
                     ORDER BY m.designation ASC
                 ');
@@ -116,6 +104,7 @@ $currentCodeModule = '';
 $currentCoeff      = '';
 $currentNote       = '';
 $currentNoteId     = '';
+$currentNationaliteCode = '';
 
 if ($selectedModuleId > 0) {
     foreach ($modules as $m) {
@@ -128,6 +117,7 @@ if ($selectedModuleId > 0) {
     if (isset($notesParModule[$selectedModuleId])) {
         $currentNote   = $notesParModule[$selectedModuleId]['note'];
         $currentNoteId = $notesParModule[$selectedModuleId]['note_id'];
+        $currentNationaliteCode = $notesParModule[$selectedModuleId]['nationalite_code'] ?? '';
     }
 }
 
@@ -195,6 +185,19 @@ require __DIR__ . '/../includes/header.php';
             <td>Filière :</td>
             <td>
                 <input type="text" name="filiere" id="filiere" size="20" value="<?= h($etudiant['filiere'] ?? '') ?>" readonly placeholder="ex: 3ISIL">
+            </td>
+        </tr>
+        <tr>
+            <td>Nationalité de la note :</td>
+            <td>
+                <select name="nationalite_code" id="nationalite_code" required>
+                    <option value="">— Sélectionner une nationalité —</option>
+                    <?php foreach ($nationalites as $nationalite): ?>
+                        <option value="<?= h($nationalite['code']) ?>" <?= $currentNationaliteCode === $nationalite['code'] ? 'selected' : '' ?>>
+                            <?= h($nationalite['libelle']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </td>
         </tr>
         </table>
@@ -283,6 +286,7 @@ require __DIR__ . '/../includes/header.php';
                     <th>Module</th>
                     <th>Code</th>
                     <th>Coefficient</th>
+                    <th>Nationalité</th>
                     <th>Note / 20</th>
                     <th>Note pondérée</th>
                     <th>Date saisie</th>
@@ -304,6 +308,7 @@ require __DIR__ . '/../includes/header.php';
                         <td><strong><?= h($ne['designation']) ?></strong></td>
                         <td><?= h($ne['code_module']) ?></td>
                         <td><?= h($ne['coefficient']) ?></td>
+                        <td><?= h($ne['nationalite'] ?? '—') ?></td>
                         <td>
                             <strong style="color: <?= $noteVal >= 10 ? '#15803d' : '#b91c1c' ?>;">
                                 <?= number_format($noteVal, 2, ',', ' ') ?> / 20
@@ -329,7 +334,7 @@ require __DIR__ . '/../includes/header.php';
                     <td colspan="2" style="text-align: right;">Total :</td>
                     <td><?= $totalCoeff ?></td>
                     <td>Moyenne :</td>
-                    <td colspan="3" style="font-size: 15px; color: <?= ($totalCoeff > 0 && ($totalPoints / $totalCoeff) >= 10) ? '#15803d' : '#b91c1c' ?>;">
+                    <td colspan="4" style="font-size: 15px; color: <?= ($totalCoeff > 0 && ($totalPoints / $totalCoeff) >= 10) ? '#15803d' : '#b91c1c' ?>;">
                         <?= $totalCoeff > 0 ? number_format($totalPoints / $totalCoeff, 2, ',', ' ') . ' / 20' : '—' ?>
                     </td>
                 </tr>

@@ -1,58 +1,58 @@
 /* ==========================================================================
    TP01 – PAW : Modern Design System & Theme Stylesheet
-   Color Palette: Indigo / Slate / Emerald / Rose
+   Color Palette: Midnight / Aqua / Amber
    ========================================================================== */
 
 :root {
-    /* Primary Brand Colors (Modern Indigo) */
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --primary-active: #3730a3;
-    --primary-light: #eef2ff;
-    --primary-light-border: #c7d2fe;
-    --primary-glow: rgba(79, 70, 229, 0.22);
+    /* Primary Brand Colors (Aqua) */
+    --primary: #2dd4bf;
+    --primary-hover: #14b8a6;
+    --primary-active: #0f766e;
+    --primary-light: #123936;
+    --primary-light-border: #23665e;
+    --primary-glow: rgba(45, 212, 191, 0.24);
 
     /* Secondary / Accent Colors */
-    --accent: #0ea5e9;
-    --accent-light: #f0f9ff;
-    --accent-border: #bae6fd;
+    --accent: #fbbf24;
+    --accent-light: #3a2c12;
+    --accent-border: #80621f;
 
     /* Neutrals & Surfaces */
-    --bg-page: #f8fafc;
-    --bg-page-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-    --bg-card: #ffffff;
-    --bg-subtle: #f8fafc;
-    --bg-alt: #f1f5f9;
+    --bg-page: #0b1418;
+    --bg-page-gradient: linear-gradient(135deg, #102129 0%, #172b2b 100%);
+    --bg-card: #142329;
+    --bg-subtle: #1a2e34;
+    --bg-alt: #20383d;
 
     /* Typography & Text */
-    --text-heading: #0f172a;
-    --text-body: #334155;
-    --text-muted: #64748b;
-    --text-light: #94a3b8;
+    --text-heading: #f1f7f4;
+    --text-body: #d0dfda;
+    --text-muted: #9db5ae;
+    --text-light: #80968f;
 
     /* Borders & Shadows */
-    --border-light: #e2e8f0;
-    --border-medium: #cbd5e1;
-    --border-focus: #6366f1;
-    --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-    --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
-    --shadow-card: 0 20px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.03);
+    --border-light: #294149;
+    --border-medium: #3b5860;
+    --border-focus: #2dd4bf;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -2px rgba(0, 0, 0, 0.16);
+    --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.32), 0 4px 8px -2px rgba(0, 0, 0, 0.2);
+    --shadow-card: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
 
     /* Status Colors */
-    --success-bg: #f0fdf4;
-    --success-border: #86efac;
-    --success-text: #166534;
-    --success-solid: #10b981;
+    --success-bg: #123027;
+    --success-border: #286c4e;
+    --success-text: #a4e5bf;
+    --success-solid: #34d399;
 
-    --error-bg: #fef2f2;
-    --error-border: #fca5a5;
-    --error-text: #991b1b;
-    --error-solid: #ef4444;
+    --error-bg: #351f24;
+    --error-border: #80404a;
+    --error-text: #ffc2c8;
+    --error-solid: #f87171;
 
-    --warning-bg: #fffbeb;
-    --warning-border: #fde68a;
-    --warning-text: #92400e;
+    --warning-bg: #3a2c12;
+    --warning-border: #80621f;
+    --warning-text: #f8d889;
 
     /* Radii */
     --radius-sm: 6px;
@@ -70,8 +70,8 @@
 body {
     background: var(--bg-page);
     background-image:
-        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.07) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.07) 0px, transparent 50%);
+        radial-gradient(at 0% 0%, rgba(45, 212, 191, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(251, 191, 36, 0.08) 0px, transparent 50%);
     background-attachment: fixed;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 14.5px;
@@ -104,7 +104,7 @@ body {
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, var(--primary) 0%, #818cf8 50%, var(--accent) 100%);
+    background: linear-gradient(90deg, var(--primary) 0%, #149b91 50%, var(--accent) 100%);
 }
 
 /* Header & Brand Title */
@@ -169,7 +169,7 @@ h1 {
 }
 
 #menu a:hover {
-    background: #ffffff;
+    background: var(--bg-alt);
     color: var(--primary);
     box-shadow: var(--shadow-sm);
     transform: translateY(-1px);
@@ -177,7 +177,7 @@ h1 {
 
 #menu a.active {
     background: var(--primary);
-    color: #ffffff;
+    color: #062b29;
     font-weight: 600;
     box-shadow: 0 2px 8px var(--primary-glow);
 }
@@ -207,7 +207,7 @@ h1 {
 }
 
 .nav-dropdown-btn:hover {
-    background: #ffffff;
+    background: var(--bg-alt);
     color: var(--primary);
     box-shadow: var(--shadow-sm);
     transform: translateY(-1px);
@@ -216,7 +216,7 @@ h1 {
 .nav-dropdown-btn.active,
 .nav-dropdown.active .nav-dropdown-btn {
     background: var(--primary);
-    color: #ffffff;
+    color: #062b29;
     font-weight: 600;
     box-shadow: 0 2px 8px var(--primary-glow);
 }
@@ -226,7 +226,7 @@ h1 {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    background: #ffffff;
+    background: var(--bg-card);
     min-width: 170px;
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--border-light);
@@ -262,7 +262,7 @@ h1 {
 
 .nav-dropdown-content a.active {
     background: var(--primary) !important;
-    color: #ffffff !important;
+    color: #062b29 !important;
 }
 
 /* Dividers */
@@ -367,7 +367,7 @@ select {
     font-family: inherit;
     font-size: 14px;
     color: var(--text-heading);
-    background: #ffffff;
+    background: var(--bg-card);
     border: 1.5px solid var(--border-medium);
     border-radius: var(--radius-md);
     padding: 8px 12px;
@@ -391,7 +391,7 @@ input[type="text"]::placeholder {
 select {
     cursor: pointer;
     padding-right: 28px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371827e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
     appearance: none;
@@ -442,7 +442,7 @@ button {
     border: 1.5px solid transparent;
     line-height: 1.4;
     margin: 4px;
-    background: #ffffff;
+    background: var(--bg-card);
     color: var(--text-heading);
     border-color: var(--border-medium);
     box-shadow: var(--shadow-sm);
@@ -463,7 +463,7 @@ button:active {
 /* Primary Action Button (Enregistrer) */
 button[type="submit"]:not([formaction]):not([formmethod="get"]) {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-    color: #ffffff;
+    color: #062b29;
     border-color: var(--primary-hover);
     box-shadow: 0 2px 6px var(--primary-glow);
 }
@@ -485,45 +485,45 @@ button[formmethod="get"] {
 button[formaction="liste.php"]:hover,
 button[formmethod="get"]:hover {
     background: var(--primary);
-    color: #ffffff;
+    color: #062b29;
     border-color: var(--primary);
 }
 
 /* Interactive Display Buttons */
 button#btn-affichage-js {
-    background: #fdf4ff;
-    color: #9333ea;
-    border-color: #f0abfc;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent-border);
 }
 
 button#btn-affichage-js:hover {
-    background: #9333ea;
-    color: #ffffff;
-    border-color: #9333ea;
+    background: var(--accent);
+    color: #332407;
+    border-color: var(--accent);
 }
 
 button[formaction="afficher_php.php"] {
-    background: #ecfeff;
-    color: #0891b2;
-    border-color: #a5f3fc;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary-light-border);
 }
 
 button[formaction="afficher_php.php"]:hover {
-    background: #0891b2;
-    color: #ffffff;
-    border-color: #0891b2;
+    background: var(--primary);
+    color: #062b29;
+    border-color: var(--primary);
 }
 
 button[formaction="upload_image.php"] {
-    background: #f0fdf4;
-    color: #059669;
-    border-color: #a7f3d0;
+    background: var(--success-bg);
+    color: var(--success-text);
+    border-color: var(--success-border);
 }
 
 button[formaction="upload_image.php"]:hover {
-    background: #059669;
+    background: var(--success-solid);
     color: #ffffff;
-    border-color: #059669;
+    border-color: var(--success-solid);
 }
 
 /* Reset Button */
@@ -534,14 +534,14 @@ button[type="reset"] {
 }
 
 button[type="reset"]:hover {
-    background: #fee2e2;
+    background: var(--error-bg);
     color: var(--error-text);
     border-color: var(--error-border);
 }
 
 /* Delete Button in Tables */
 table.liste form button[type="submit"] {
-    background: #fef2f2;
+    background: var(--error-bg);
     color: var(--error-text);
     border-color: var(--error-border);
     padding: 5px 11px;
@@ -564,7 +564,7 @@ table.liste {
     border-spacing: 0;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-light);
-    background: #ffffff;
+    background: var(--bg-card);
     box-shadow: var(--shadow-sm);
     margin: 16px 0 24px 0;
     table-layout: auto;
@@ -611,12 +611,12 @@ table.liste tr:last-child td {
 
 table.liste tbody tr:nth-child(even) td,
 table.liste tr:nth-child(even) td {
-    background: #fafbfd;
+    background: #182b30;
 }
 
 table.liste tbody tr:hover td,
 table.liste tr:hover td {
-    background: #f1f5f9;
+    background: #254147;
 }
 
 /* Action Cell Links & Forms */
@@ -637,7 +637,7 @@ table.liste td a {
 
 table.liste td a:hover {
     background: var(--primary);
-    color: #ffffff;
+    color: #062b29;
     text-decoration: none;
     border-color: var(--primary);
 }
@@ -692,9 +692,9 @@ table.liste img {
 /* JavaScript Display Card (#resultat_js) */
 #resultat_js {
     display: none;
-    background: #ffffff;
+    background: var(--bg-card);
     border: 1px solid var(--border-light);
-    border-left: 4px solid #9333ea;
+    border-left: 4px solid var(--accent);
     border-radius: var(--radius-lg);
     padding: 18px 22px;
     margin-top: 24px;
@@ -703,7 +703,7 @@ table.liste img {
 
 #resultat_js strong {
     display: block;
-    color: #9333ea;
+    color: var(--accent);
     font-size: 15px;
     font-weight: 700;
     margin-bottom: 12px;
@@ -715,7 +715,7 @@ table.liste img {
     padding: 5px 0;
     font-size: 13.5px;
     color: var(--text-body);
-    border-bottom: 1px dashed #f1f5f9;
+    border-bottom: 1px dashed var(--border-light);
 }
 
 #resultat_js div:last-child {
@@ -793,7 +793,7 @@ ol li {
 }
 
 ol li:hover {
-    background: #ffffff;
+    background: var(--bg-card);
     border-color: var(--primary-light-border);
     box-shadow: var(--shadow-md);
     transform: translateX(4px);
@@ -810,7 +810,7 @@ ol li::before {
     height: 26px;
     border-radius: var(--radius-full);
     background: var(--primary);
-    color: #ffffff;
+    color: #062b29;
     font-size: 12.5px;
     font-weight: 700;
     display: flex;
@@ -864,7 +864,7 @@ ol li a:hover {
 .bulletin-student-info {
     min-width: 0;
     padding: 14px 18px;
-    background: #ffffff;
+    background: var(--bg-card);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
@@ -951,7 +951,7 @@ ol li a:hover {
 .multiselect-trigger {
     min-height: 40px;
     padding: 6px 34px 6px 12px;
-    background: #ffffff;
+    background: var(--bg-card);
     border: 1.5px solid var(--border-medium);
     border-radius: var(--radius-md);
     cursor: pointer;
@@ -1036,7 +1036,7 @@ ol li a:hover {
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: #ffffff;
+    background: var(--bg-card);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
@@ -1129,15 +1129,15 @@ ol li a:hover {
 .multiselect-item .mod-badge {
     font-size: 11px;
     font-weight: 700;
-    background: #e2e8f0;
-    color: #1e293b;
+    background: #294149;
+    color: var(--text-heading);
     padding: 2px 6px;
     border-radius: 4px;
 }
 
 .multiselect-item.selected .mod-badge {
     background: var(--primary);
-    color: #ffffff;
+    color: #062b29;
 }
 
 .multiselect-item .mod-name {
@@ -1156,14 +1156,14 @@ ol li a:hover {
 }
 
 .btn-etudiants {
-    background: #0284c7 !important;
-    border-color: #0284c7 !important;
-    color: #ffffff !important;
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: #062b29 !important;
 }
 
 .btn-etudiants:hover {
-    background: #0369a1 !important;
-    border-color: #0369a1 !important;
+    background: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
 }
 
 /* Print Styles */
@@ -1200,7 +1200,7 @@ ol li a:hover {
     table.liste,
     table.formulaire {
         box-shadow: none !important;
-        border: 1px solid #333 !important;
+        border: 1px solid #405451 !important;
         page-break-inside: avoid;
     }
 }

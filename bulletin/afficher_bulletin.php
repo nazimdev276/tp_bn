@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/fonctions.php';
 
+assurer_schema_note($pdo);
+
 $numero = trim((string)($_GET['numero'] ?? ''));
 $etudiant = null;
 $notes = [];
@@ -23,9 +25,11 @@ if ($numero !== '') {
         $erreur = "Aucun étudiant trouvé pour le numéro « {$numero} ».";
     } else {
         $stmt = $pdo->prepare('
-            SELECT m.code_module, m.designation, m.coefficient, n.note
+            SELECT m.code_module, m.designation, m.coefficient, n.note,
+                   nat.libelle AS nationalite
             FROM note n
             JOIN module m ON m.id = n.module_id
+            LEFT JOIN nationalite nat ON nat.code = n.nationalite_code
             WHERE n.etudiant_id = :etudiant_id
             ORDER BY m.designation ASC
         ');
@@ -273,6 +277,7 @@ require __DIR__ . '/../includes/header.php';
                             <th>Filière</th>
                             <th>Code module</th>
                             <th>Nom module</th>
+                            <th>Nationalité</th>
                             <th class="num">Coefficient</th>
                             <th class="num">Note</th>
                         </tr>
@@ -284,6 +289,7 @@ require __DIR__ . '/../includes/header.php';
                                 <td><?= h($etudiant['filiere']) ?></td>
                                 <td><?= h($note['code_module']) ?></td>
                                 <td><?= h($note['designation']) ?></td>
+                                <td><?= h($note['nationalite'] ?? '—') ?></td>
                                 <td class="num"><?= h($note['coefficient']) ?></td>
                                 <td class="num <?= (float)$note['note'] >= 10 ? 'bl-ok' : 'bl-fail' ?>">
                                     <?= number_format((float)$note['note'], 2, ',', ' ') ?>
@@ -293,19 +299,19 @@ require __DIR__ . '/../includes/header.php';
                     </tbody>
                     <tfoot>
                         <tr>
-                            <th colspan="4">Somme coefficients</th>
+                            <th colspan="5">Somme coefficients</th>
                             <td colspan="2">
                                 <span class="bl-bubble"><?= $totalCoefficients ?></span>
                             </td>
                         </tr>
                         <tr>
-                            <th colspan="4">Somme Coef*Notes</th>
+                            <th colspan="5">Somme Coef*Notes</th>
                             <td colspan="2">
                                 <span class="bl-bubble"><?= number_format($totalPoints, 2, ',', ' ') ?></span>
                             </td>
                         </tr>
                         <tr class="bl-moyenne">
-                            <th colspan="4">Moyenne</th>
+                            <th colspan="5">Moyenne</th>
                             <td colspan="2"><?= number_format($moyenne, 2, ',', ' ') ?></td>
                         </tr>
                     </tfoot>

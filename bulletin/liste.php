@@ -3,24 +3,7 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/fonctions.php';
 
-// Création de la table note si elle n'existe pas encore (idempotent)
-try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS note (
-      id          INT AUTO_INCREMENT PRIMARY KEY,
-      etudiant_id INT NOT NULL,
-      module_id   INT NOT NULL,
-      note        DECIMAL(4, 2) NOT NULL,
-      date_saisie TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      CONSTRAINT fk_note_etudiant
-        FOREIGN KEY (etudiant_id) REFERENCES personne(id)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-      CONSTRAINT fk_note_module
-        FOREIGN KEY (module_id) REFERENCES module(id)
-        ON UPDATE CASCADE ON DELETE RESTRICT,
-      CONSTRAINT uk_etudiant_module UNIQUE (etudiant_id, module_id)
-    ) ENGINE=InnoDB");
-} catch (Exception $e) {
-}
+assurer_schema_note($pdo);
 
 $termeRecherche = trim((string)($_GET['q'] ?? $_GET['id'] ?? ''));
 $erreurRecherche = false;
@@ -29,29 +12,33 @@ $notes = [];
 $sql = '
     SELECT n.id AS note_id, n.note, n.date_saisie,
            p.id AS etudiant_id, p.numero, p.civilite, p.nom_prenom, p.filiere, p.photo,
+           nat.libelle AS nationalite,
            m.id AS module_id, m.code_module, m.designation, m.coefficient
     FROM note n
     JOIN personne p ON p.id = n.etudiant_id
     JOIN module m ON m.id = n.module_id
+    LEFT JOIN nationalite nat ON nat.code = n.nationalite_code
 ';
 
 $params = [];
 if ($termeRecherche !== '') {
     $idValide = filter_var($termeRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     if ($idValide !== false) {
-        $sql .= ' WHERE n.id = :id OR p.id = :pid OR p.numero = :pnum OR p.nom_prenom LIKE :nom OR m.code_module LIKE :mod OR m.designation LIKE :des';
+        $sql .= ' WHERE n.id = :id OR p.id = :pid OR p.numero = :pnum OR p.nom_prenom LIKE :nom OR m.code_module LIKE :mod OR m.designation LIKE :des OR nat.libelle LIKE :nat';
         $params[':id']   = $idValide;
         $params[':pid']  = $idValide;
         $params[':pnum'] = $termeRecherche;
         $params[':nom']  = '%' . $termeRecherche . '%';
         $params[':mod']  = '%' . $termeRecherche . '%';
         $params[':des']  = '%' . $termeRecherche . '%';
+        $params[':nat']  = '%' . $termeRecherche . '%';
     } else {
-        $sql .= ' WHERE p.numero = :pnum OR p.nom_prenom LIKE :nom OR m.code_module LIKE :mod OR m.designation LIKE :des';
+        $sql .= ' WHERE p.numero = :pnum OR p.nom_prenom LIKE :nom OR m.code_module LIKE :mod OR m.designation LIKE :des OR nat.libelle LIKE :nat';
         $params[':pnum'] = $termeRecherche;
         $params[':nom']  = '%' . $termeRecherche . '%';
         $params[':mod']  = '%' . $termeRecherche . '%';
         $params[':des']  = '%' . $termeRecherche . '%';
+        $params[':nat']  = '%' . $termeRecherche . '%';
     }
 }
 
@@ -73,7 +60,7 @@ require __DIR__ . '/../includes/header.php';
 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
     <form method="get" action="liste.php" class="form-recherche" style="margin: 0;">
         <label for="search-input">Rechercher une note :</label>
-        <input type="text" name="q" id="search-input" placeholder="Étudiant, N°, Module..." value="<?= h($termeRecherche) ?>">
+        <input type="text" name="q" id="search-input" placeholder="Étudiant, N°, module, nationalité..." value="<?= h($termeRecherche) ?>">
         <button type="submit">Rechercher</button>
         <?php if ($termeRecherche !== ''): ?>
             <a href="liste.php" style="margin-left: 10px;">Réinitialiser</a>
@@ -104,6 +91,7 @@ require __DIR__ . '/../includes/header.php';
                 <th>Nom_module</th>
                 <th>code_module</th>
                 <th>coefficient</th>
+                <th>Nationalité</th>
                 <th>Note</th>
                 <th>Actions</th>
             </tr>
@@ -118,6 +106,7 @@ require __DIR__ . '/../includes/header.php';
                     <td><?= h($n['designation']) ?></td>
                     <td><?= h($n['code_module']) ?></td>
                     <td><?= h($n['coefficient']) ?></td>
+                    <td><?= h($n['nationalite'] ?? '—') ?></td>
                     <td>
                         <strong style="color: <?= $noteVal >= 10 ? '#15803d' : '#b91c1c' ?>; font-size: 14px;">
                             <?= number_format($noteVal, 2, ',', ' ') ?>

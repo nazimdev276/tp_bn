@@ -184,6 +184,7 @@ CREATE TABLE IF NOT EXISTS note (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   etudiant_id INT NOT NULL,
   module_id   INT NOT NULL,
+  nationalite_code VARCHAR(3) NULL,
   note        DECIMAL(4, 2) NOT NULL,
   date_saisie TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_note_etudiant
@@ -192,6 +193,9 @@ CREATE TABLE IF NOT EXISTS note (
   CONSTRAINT fk_note_module
     FOREIGN KEY (module_id) REFERENCES module(id)
     ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_note_nationalite
+    FOREIGN KEY (nationalite_code) REFERENCES nationalite(code)
+    ON UPDATE CASCADE ON DELETE SET NULL,
   CONSTRAINT uk_etudiant_module UNIQUE (etudiant_id, module_id)
 ) ENGINE=InnoDB;
 
@@ -226,8 +230,8 @@ WHERE NOT EXISTS (
   SELECT 1 FROM module m WHERE m.code_module = demo.code_module
 );
 
-INSERT IGNORE INTO note (etudiant_id, module_id, note)
-SELECT p.id, m.id, demo.note
+INSERT IGNORE INTO note (etudiant_id, module_id, nationalite_code, note)
+SELECT p.id, m.id, p.nationalite_code, demo.note
 FROM (
   SELECT '15' AS numero, 'Démo Bulletin 15' AS nom_prenom, 'DEMO-BDD' AS code_module, 15.00 AS note
   UNION ALL SELECT '15', 'Démo Bulletin 15', 'DEMO-POO', 16.00

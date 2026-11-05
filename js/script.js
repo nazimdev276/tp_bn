@@ -547,6 +547,7 @@ function initBulletin(form) {
     var inputCoeff   = document.getElementById('coefficient');
     var inputNote    = document.getElementById('note');
     var inputNoteId  = document.getElementById('note_id');
+    var selectNationalite = document.getElementById('nationalite_code');
     var badgeNote    = document.getElementById('note-existante-badge');
 
     function majModule() {
@@ -563,6 +564,7 @@ function initBulletin(form) {
                     var noteData = window.NOTES_ETUDIANT[moduleId];
                     if (inputNote) inputNote.value = noteData.note;
                     if (inputNoteId) inputNoteId.value = noteData.note_id;
+                    if (selectNationalite) selectNationalite.value = noteData.nationalite_code || '';
                     if (!badgeNote) {
                         badgeNote = document.createElement('span');
                         badgeNote.id = 'note-existante-badge';
@@ -576,6 +578,7 @@ function initBulletin(form) {
                     }
                 } else {
                     if (inputNoteId) inputNoteId.value = '';
+                    if (selectNationalite) selectNationalite.value = '';
                     if (badgeNote) badgeNote.style.display = 'none';
                 }
             }
@@ -583,6 +586,7 @@ function initBulletin(form) {
             if (inputCode) inputCode.value = '';
             if (inputCoeff) inputCoeff.value = '';
             if (inputNoteId) inputNoteId.value = '';
+            if (selectNationalite) selectNationalite.value = '';
             if (badgeNote) badgeNote.style.display = 'none';
         }
     }
@@ -619,6 +623,9 @@ function validerBulletin(form) {
     if (!form.module_id || form.module_id.value.trim() === '') {
         erreurs.push("Veuillez sélectionner un module d'enseignement.");
     }
+    if (!form.nationalite_code || form.nationalite_code.value.trim() === '') {
+        erreurs.push("Veuillez sélectionner une nationalité.");
+    }
     var noteVal = form.note ? form.note.value.trim().replace(',', '.') : '';
     if (noteVal === '') {
         erreurs.push("La note est obligatoire.");
@@ -630,5 +637,4 @@ function validerBulletin(form) {
     }
     return erreurs;
 }
-
 

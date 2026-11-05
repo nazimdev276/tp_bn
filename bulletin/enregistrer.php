@@ -9,11 +9,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+assurer_schema_note($pdo);
+
 $action     = $_POST['action'] ?? ($_GET['action'] ?? 'enregistrer');
 $etudiantId = filter_var($_POST['etudiant_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 $moduleId   = filter_var($_POST['module_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 $noteId     = filter_var($_POST['note_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 $noteRaw    = trim((string)($_POST['note'] ?? ''));
+$nationaliteCode = trim((string)($_POST['nationalite_code'] ?? ''));
 
 // Remplacer virgule par point pour les décimales (ex: 14,5 -> 14.5)
 $noteNormalized = str_replace(',', '.', $noteRaw);
@@ -21,6 +24,7 @@ $noteNormalized = str_replace(',', '.', $noteRaw);
 $erreurs = [];
 $etudiant = null;
 $module = null;
+$nationalite = null;
 $noteVal = null;
 
 // 1. Validation de l'étudiant
@@ -47,7 +51,19 @@ if ($moduleId === false || $moduleId === null) {
     }
 }
 
-// 3. Validation de la note
+// 3. Validation de la nationalité
+if ($nationaliteCode === '') {
+    $erreurs[] = "Veuillez sélectionner une nationalité.";
+} else {
+    $stmt = $pdo->prepare('SELECT code, libelle FROM nationalite WHERE code = :code');
+    $stmt->execute([':code' => $nationaliteCode]);
+    $nationalite = $stmt->fetch() ?: null;
+    if (!$nationalite) {
+        $erreurs[] = "La nationalité sélectionnée est invalide.";
+    }
+}
+
+// 4. Validation de la note
 if ($noteRaw === '') {
     $erreurs[] = "La note est obligatoire.";
 } elseif (!is_numeric($noteNormalized)) {
@@ -62,7 +78,7 @@ if ($noteRaw === '') {
 $succes = false;
 $messageSucces = '';
 
-if (!$erreurs && $etudiant && $module && $noteVal !== null) {
+if (!$erreurs && $etudiant && $module && $nationalite && $noteVal !== null) {
     try {
         // Vérifier si une note existe déjà pour ce couple (étudiant, module)
         $stmtCheck = $pdo->prepare('SELECT id, note FROM note WHERE etudiant_id = :eid AND module_id = :mid');
@@ -79,11 +95,12 @@ if (!$erreurs && $etudiant && $module && $noteVal !== null) {
             } else {
                 $stmtUpdate = $pdo->prepare('
                     UPDATE note
-                    SET note = :note
+                    SET note = :note, nationalite_code = :nationalite_code
                     WHERE id = :id
                 ');
                 $stmtUpdate->execute([
                     ':note' => $noteVal,
+                    ':nationalite_code' => $nationalite['code'],
                     ':id'   => $noteExistante['id'],
                 ]);
 
@@ -99,12 +116,13 @@ if (!$erreurs && $etudiant && $module && $noteVal !== null) {
                 $erreurs[] = "Une note existe déjà pour cet étudiant dans le module « " . $module['designation'] . " » (Note actuelle : {$noteActuelle} / 20). Pour modifier cette note, veuillez cliquer sur le bouton « Modifier ».";
             } else {
                 $stmtInsert = $pdo->prepare('
-                    INSERT INTO note (etudiant_id, module_id, note)
-                    VALUES (:eid, :mid, :note)
+                    INSERT INTO note (etudiant_id, module_id, nationalite_code, note)
+                    VALUES (:eid, :mid, :nationalite_code, :note)
                 ');
                 $stmtInsert->execute([
                     ':eid'  => $etudiant['id'],
                     ':mid'  => $module['id'],
+                    ':nationalite_code' => $nationalite['code'],
                     ':note' => $noteVal,
                 ]);
 

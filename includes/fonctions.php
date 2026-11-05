@@ -7,6 +7,37 @@ function h($texte): string
     return htmlspecialchars((string)$texte, ENT_QUOTES, 'UTF-8');
 }
 
+function assurer_schema_note(PDO $pdo): void
+{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS note (
+      id          INT AUTO_INCREMENT PRIMARY KEY,
+      etudiant_id INT NOT NULL,
+      module_id   INT NOT NULL,
+      nationalite_code VARCHAR(3) NULL,
+      note        DECIMAL(4, 2) NOT NULL,
+      date_saisie TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_note_etudiant
+        FOREIGN KEY (etudiant_id) REFERENCES personne(id)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+      CONSTRAINT fk_note_module
+        FOREIGN KEY (module_id) REFERENCES module(id)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+      CONSTRAINT fk_note_nationalite
+        FOREIGN KEY (nationalite_code) REFERENCES nationalite(code)
+        ON UPDATE CASCADE ON DELETE SET NULL,
+      CONSTRAINT uk_etudiant_module UNIQUE (etudiant_id, module_id)
+    ) ENGINE=InnoDB");
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM note LIKE 'nationalite_code'");
+    if (!$stmt->fetch()) {
+        $pdo->exec("ALTER TABLE note
+            ADD COLUMN nationalite_code VARCHAR(3) NULL AFTER module_id,
+            ADD CONSTRAINT fk_note_nationalite
+                FOREIGN KEY (nationalite_code) REFERENCES nationalite(code)
+                ON UPDATE CASCADE ON DELETE SET NULL");
+    }
+}
+
 // Récupère une liste de cases cochées (checkbox) en gardant seulement les valeurs autorisées
 function post_liste(string $nom, array $autorises): array
 {
