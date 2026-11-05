@@ -548,7 +548,42 @@ function initBulletin(form) {
     var inputNote    = document.getElementById('note');
     var inputNoteId  = document.getElementById('note_id');
     var selectNationalite = document.getElementById('nationalite_code');
+    var rechercheNationalite = document.getElementById('nationalite-recherche');
+    var drapeauNationalite = document.getElementById('nationalite-flag-preview');
     var badgeNote    = document.getElementById('note-existante-badge');
+
+    function majDrapeauNationalite() {
+        if (!selectNationalite || !drapeauNationalite) return;
+        var code = selectNationalite.value.toLowerCase();
+        if (/^[a-z]{2}$/.test(code)) {
+            drapeauNationalite.src = 'https://flagcdn.com/w80/' + code + '.png';
+            drapeauNationalite.alt = 'Drapeau de ' + selectNationalite.options[selectNationalite.selectedIndex].text.trim();
+            drapeauNationalite.hidden = false;
+        } else {
+            drapeauNationalite.removeAttribute('src');
+            drapeauNationalite.alt = '';
+            drapeauNationalite.hidden = true;
+        }
+    }
+
+    if (rechercheNationalite && selectNationalite) {
+        rechercheNationalite.addEventListener('input', function () {
+            var recherche = rechercheNationalite.value.trim().toLocaleLowerCase();
+            Array.prototype.forEach.call(selectNationalite.options, function (option) {
+                option.hidden = option.value !== '' &&
+                    (option.text + ' ' + option.value).toLocaleLowerCase().indexOf(recherche) === -1;
+            });
+        });
+    }
+    if (selectNationalite) {
+        selectNationalite.addEventListener('change', majDrapeauNationalite);
+        if (drapeauNationalite) {
+            drapeauNationalite.addEventListener('error', function () {
+                drapeauNationalite.hidden = true;
+            });
+        }
+        majDrapeauNationalite();
+    }
 
     function majModule() {
         if (!selectModule) return;
@@ -589,6 +624,7 @@ function initBulletin(form) {
             if (selectNationalite) selectNationalite.value = '';
             if (badgeNote) badgeNote.style.display = 'none';
         }
+        majDrapeauNationalite();
     }
 
     if (selectModule) {
@@ -637,4 +673,3 @@ function validerBulletin(form) {
     }
     return erreurs;
 }
-

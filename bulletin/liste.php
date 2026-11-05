@@ -8,23 +8,30 @@ assurer_schema_note($pdo);
 $termeRecherche = trim((string)($_GET['q'] ?? $_GET['id'] ?? ''));
 $erreurRecherche = false;
 $notes = [];
+$resultatsEtudiants = [];
 
 $sql = '
     SELECT n.id AS note_id, n.note, n.date_saisie,
            p.id AS etudiant_id, p.numero, p.civilite, p.nom_prenom, p.filiere, p.photo,
-           nat.libelle AS nationalite,
+           COALESCE(n.nationalite_code, p.nationalite_code) AS nationalite_code,
+           COALESCE(nat.libelle, nat_personne.libelle) AS nationalite,
            m.id AS module_id, m.code_module, m.designation, m.coefficient
     FROM note n
     JOIN personne p ON p.id = n.etudiant_id
     JOIN module m ON m.id = n.module_id
     LEFT JOIN nationalite nat ON nat.code = n.nationalite_code
+    LEFT JOIN nationalite nat_personne ON nat_personne.code = p.nationalite_code
 ';
 
 $params = [];
+$noteMin = null;
+$noteMax = null;
+$modulesMin = [];
+$modulesMax = [];
 if ($termeRecherche !== '') {
     $idValide = filter_var($termeRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     if ($idValide !== false) {
-        $sql .= ' WHERE n.id = :id OR p.id = :pid OR p.numero = :pnum OR p.nom_prenom LIKE :nom OR m.code_module LIKE :mod OR m.designation LIKE :des OR nat.libelle LIKE :nat';
+        $sql .= ' WHERE n.id = :id OR p.id = :pid OR p.numero = :pnum OR p.nom_prenom LIKE :nom OR m.code_module LIKE :mod OR m.designation LIKE :des OR COALESCE(nat.libelle, nat_personne.libelle) LIKE :nat';
         $params[':id']   = $idValide;
         $params[':pid']  = $idValide;
         $params[':pnum'] = $termeRecherche;
@@ -33,7 +40,7 @@ if ($termeRecherche !== '') {
         $params[':des']  = '%' . $termeRecherche . '%';
         $params[':nat']  = '%' . $termeRecherche . '%';
     } else {
-        $sql .= ' WHERE p.numero = :pnum OR p.nom_prenom LIKE :nom OR m.code_module LIKE :mod OR m.designation LIKE :des OR nat.libelle LIKE :nat';
+        $sql .= ' WHERE p.numero = :pnum OR p.nom_prenom LIKE :nom OR m.code_module LIKE :mod OR m.designation LIKE :des OR COALESCE(nat.libelle, nat_personne.libelle) LIKE :nat';
         $params[':pnum'] = $termeRecherche;
         $params[':nom']  = '%' . $termeRecherche . '%';
         $params[':mod']  = '%' . $termeRecherche . '%';
@@ -48,6 +55,37 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $notes = $stmt->fetchAll();
+    foreach ($notes as $note) {
+        $valeur = (float)$note['note'];
+        if ($noteMin === null || $valeur < $noteMin) {
+            $noteMin = $valeur;
+            $modulesMin = [$note['designation']];
+        } elseif ($valeur === $noteMin) {
+            $modulesMin[] = $note['designation'];
+        }
+        if ($noteMax === null || $valeur > $noteMax) {
+            $noteMax = $valeur;
+            $modulesMax = [$note['designation']];
+        } elseif ($valeur === $noteMax) {
+            $modulesMax[] = $note['designation'];
+        }
+    }
+    if ($notes) {
+        $etudiantIds = array_values(array_unique(array_column($notes, 'etudiant_id')));
+        $placeholders = implode(',', array_fill(0, count($etudiantIds), '?'));
+        $stmtMoyennes = $pdo->prepare("
+            SELECT n.etudiant_id,
+                   SUM(n.note * m.coefficient) / NULLIF(SUM(m.coefficient), 0) AS moyenne
+            FROM note n
+            JOIN module m ON m.id = n.module_id
+            WHERE n.etudiant_id IN ($placeholders)
+            GROUP BY n.etudiant_id
+        ");
+        $stmtMoyennes->execute($etudiantIds);
+        foreach ($stmtMoyennes->fetchAll() as $resultat) {
+            $resultatsEtudiants[(int)$resultat['etudiant_id']] = $resultat['moyenne'];
+        }
+    }
 } catch (PDOException $e) {
     $erreurRecherche = true;
 }
@@ -81,6 +119,20 @@ require __DIR__ . '/../includes/header.php';
 <?php else: ?>
     <?php if ($termeRecherche !== ''): ?>
         <p class="ok"><?= count($notes) ?> note(s) trouvée(s) pour « <?= h($termeRecherche) ?> » :</p>
+        <?php foreach ($notes as $note): ?>
+            <?php
+            $etudiantIdResultat = (int)$note['etudiant_id'];
+            if (!isset($resultatsEtudiants[$etudiantIdResultat])) {
+                continue;
+            }
+            ?>
+            <p class="<?= (float)$resultatsEtudiants[$etudiantIdResultat] >= 10 ? 'ok' : 'erreur' ?>">
+                <strong><?= h($note['nom_prenom']) ?> — <?= (float)$resultatsEtudiants[$etudiantIdResultat] >= 10 ? 'Admis(e)' : 'Ajourné(e)' ?></strong>
+                : moyenne générale <?= number_format((float)$resultatsEtudiants[$etudiantIdResultat], 2, ',', ' ') ?> / 20
+                (seuil : 10 / 20)
+            </p>
+            <?php unset($resultatsEtudiants[$etudiantIdResultat]); ?>
+        <?php endforeach; ?>
     <?php endif; ?>
 
     <table class="liste">
@@ -106,7 +158,12 @@ require __DIR__ . '/../includes/header.php';
                     <td><?= h($n['designation']) ?></td>
                     <td><?= h($n['code_module']) ?></td>
                     <td><?= h($n['coefficient']) ?></td>
-                    <td><?= h($n['nationalite'] ?? '—') ?></td>
+                    <td>
+                        <?php if (preg_match('/^[A-Za-z]{2}$/', (string)($n['nationalite_code'] ?? ''))): ?>
+                            <img class="nationalite-flag" src="https://flagcdn.com/w40/<?= h(strtolower($n['nationalite_code'])) ?>.png" alt="" loading="lazy">
+                        <?php endif; ?>
+                        <?= h($n['nationalite'] ?? '—') ?>
+                    </td>
                     <td>
                         <strong style="color: <?= $noteVal >= 10 ? '#15803d' : '#b91c1c' ?>; font-size: 14px;">
                             <?= number_format($noteVal, 2, ',', ' ') ?>
@@ -128,6 +185,12 @@ require __DIR__ . '/../includes/header.php';
             <?php endforeach; ?>
         </tbody>
     </table>
+    <div class="bulletin-student-info" style="display: flex; flex-wrap: wrap; gap: 24px; margin-top: 16px;">
+        <p><strong>Note minimale :</strong> <?= number_format($noteMin, 2, ',', ' ') ?> / 20
+            — <strong>Module(s) :</strong> <?= h(implode(', ', $modulesMin)) ?></p>
+        <p><strong>Note maximale :</strong> <?= number_format($noteMax, 2, ',', ' ') ?> / 20
+            — <strong>Module(s) :</strong> <?= h(implode(', ', $modulesMax)) ?></p>
+    </div>
 <?php endif; ?>
 
 <script src="<?= $base ?>js/script.js"></script>

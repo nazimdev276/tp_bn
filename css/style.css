@@ -927,6 +927,41 @@ ol li a:hover {
     margin: 0;
 }
 
+.nationalite-picker {
+    display: grid;
+    gap: 8px;
+    max-width: 440px;
+}
+
+.nationalite-picker input[type="search"] {
+    width: 100%;
+}
+
+.nationalite-selection {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nationalite-flag-preview {
+    width: 48px;
+    height: 32px;
+    object-fit: cover;
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+}
+
+.nationalite-flag {
+    width: 32px;
+    height: 21px;
+    object-fit: cover;
+    vertical-align: middle;
+    margin-right: 6px;
+    border: 1px solid var(--border-light);
+    border-radius: 3px;
+}
+
 @media (max-width: 560px) {
     .bulletin-student-detail {
         grid-template-columns: 1fr;

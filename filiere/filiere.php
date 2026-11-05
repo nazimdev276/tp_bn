@@ -38,6 +38,12 @@ require __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 </form>
 
+<p>
+    <a href="statistiques.php" class="btn-link" style="display:inline-block; padding:9px 18px; background:var(--primary); color:#062b29; border-radius:var(--radius-md); font-weight:600; text-decoration:none;">
+        Voir les statistiques de réussite
+    </a>
+</p>
+
 <?php if ($messageRecherche): ?>
     <p class="<?= $filiere ? 'ok' : '' ?>"><?= h($messageRecherche) ?></p>
 <?php endif; ?>
@@ -63,6 +69,9 @@ require __DIR__ . '/../includes/header.php';
     <button type="submit" name="action" value="modifier" formaction="enregistrer.php?action=modifier">Modifier</button>
     <button type="submit" name="action" value="supprimer" formaction="supprimer.php" formnovalidate onclick="return confirm('Supprimer cette filière ?');">Supprimer</button>
     <button type="submit" formaction="liste.php" formmethod="get" formnovalidate>Affichage Liste</button>
+    <?php if ($nomCourant !== ''): ?>
+        <a href="etudiants.php?filiere=<?= h(urlencode($nomCourant)) ?>" class="btn-link" style="display:inline-block; padding:9px 18px; margin:4px; background:var(--primary); color:#062b29; border-radius:var(--radius-md); font-weight:600; text-decoration:none;">Rechercher les étudiants</a>
+    <?php endif; ?>
     <button type="reset">Réinitialiser</button>
 </form>
 

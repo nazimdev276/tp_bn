@@ -37,6 +37,12 @@ require __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 </form>
 
+<p>
+    <a href="statistiques.php" class="btn-link" style="display:inline-block; padding:9px 18px; background:var(--primary); color:#062b29; border-radius:var(--radius-md); font-weight:600; text-decoration:none;">
+        Voir les statistiques de réussite
+    </a>
+</p>
+
 <?php if ($erreur): ?>
     <p class="erreur"><?= h($erreur) ?></p>
 <?php elseif (!$filieres && $q !== ''): ?>
@@ -58,6 +64,7 @@ require __DIR__ . '/../includes/header.php';
                 <td><?= h($f['id']) ?></td>
                 <td><strong><?= h($f['nom']) ?></strong></td>
                 <td>
+                    <a href="etudiants.php?filiere=<?= h(urlencode($f['nom'])) ?>">Étudiants et résultats</a>
                     <a href="filiere.php?id=<?= h($f['id']) ?>">Modifier</a>
                     <form method="post" action="supprimer.php" style="display:inline;" onsubmit="return confirm('Supprimer la filière <?= h($f['nom']) ?> (ID <?= h($f['id']) ?>) ?');">
                         <input type="hidden" name="id" value="<?= h($f['id']) ?>">

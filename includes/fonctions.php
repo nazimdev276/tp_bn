@@ -36,6 +36,13 @@ function assurer_schema_note(PDO $pdo): void
                 FOREIGN KEY (nationalite_code) REFERENCES nationalite(code)
                 ON UPDATE CASCADE ON DELETE SET NULL");
     }
+
+    $pdo->exec('
+        UPDATE note n
+        JOIN personne p ON p.id = n.etudiant_id
+        SET n.nationalite_code = p.nationalite_code
+        WHERE n.nationalite_code IS NULL
+    ');
 }
 
 // Récupère une liste de cases cochées (checkbox) en gardant seulement les valeurs autorisées

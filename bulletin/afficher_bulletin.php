@@ -10,6 +10,10 @@ $notes = [];
 $erreur = null;
 $totalCoefficients = 0;
 $totalPoints = 0.0;
+$noteMin = null;
+$noteMax = null;
+$modulesMin = [];
+$modulesMax = [];
 
 if ($numero !== '') {
     $stmt = $pdo->prepare('
@@ -26,10 +30,13 @@ if ($numero !== '') {
     } else {
         $stmt = $pdo->prepare('
             SELECT m.code_module, m.designation, m.coefficient, n.note,
-                   nat.libelle AS nationalite
+                   COALESCE(n.nationalite_code, p.nationalite_code) AS nationalite_code,
+                   COALESCE(nat.libelle, nat_personne.libelle) AS nationalite
             FROM note n
+            JOIN personne p ON p.id = n.etudiant_id
             JOIN module m ON m.id = n.module_id
             LEFT JOIN nationalite nat ON nat.code = n.nationalite_code
+            LEFT JOIN nationalite nat_personne ON nat_personne.code = p.nationalite_code
             WHERE n.etudiant_id = :etudiant_id
             ORDER BY m.designation ASC
         ');
@@ -38,8 +45,21 @@ if ($numero !== '') {
 
         foreach ($notes as $note) {
             $coefficient = (int)$note['coefficient'];
+            $noteValue = (float)$note['note'];
             $totalCoefficients += $coefficient;
-            $totalPoints += (float)$note['note'] * $coefficient;
+            $totalPoints += $noteValue * $coefficient;
+            if ($noteMin === null || $noteValue < $noteMin) {
+                $noteMin = $noteValue;
+                $modulesMin = [$note['designation']];
+            } elseif ($noteValue === $noteMin) {
+                $modulesMin[] = $note['designation'];
+            }
+            if ($noteMax === null || $noteValue > $noteMax) {
+                $noteMax = $noteValue;
+                $modulesMax = [$note['designation']];
+            } elseif ($noteValue === $noteMax) {
+                $modulesMax[] = $note['designation'];
+            }
         }
     }
 }
@@ -248,6 +268,16 @@ require __DIR__ . '/../includes/header.php';
         <p class="bl-error"><?= h($erreur) ?></p>
 
     <?php elseif ($etudiant): ?>
+        <?php if ($notes && $totalCoefficients > 0): ?>
+            <p class="<?= $moyenne >= 10 ? 'bl-ok' : 'bl-fail' ?>" style="padding: 14px 18px; border: 1px solid currentColor; margin-bottom: 20px;">
+                <strong><?= $moyenne >= 10 ? 'Admis(e)' : 'Ajourné(e)' ?></strong>
+                — Moyenne générale : <?= number_format($moyenne, 2, ',', ' ') ?> / 20
+                (seuil de réussite : 10 / 20)
+            </p>
+        <?php elseif (!$notes): ?>
+            <p class="bl-error">Résultat non disponible : aucune note n’est enregistrée pour cet étudiant.</p>
+        <?php endif; ?>
+
         <div class="bl-card">
             <section class="bl-info" aria-label="Informations de l'étudiant">
                 <div class="bl-row"><strong>Numéro :</strong> <span><?= h($etudiant['numero']) ?></span></div>
@@ -289,7 +319,12 @@ require __DIR__ . '/../includes/header.php';
                                 <td><?= h($etudiant['filiere']) ?></td>
                                 <td><?= h($note['code_module']) ?></td>
                                 <td><?= h($note['designation']) ?></td>
-                                <td><?= h($note['nationalite'] ?? '—') ?></td>
+                                <td>
+                                    <?php if (preg_match('/^[A-Za-z]{2}$/', (string)($note['nationalite_code'] ?? ''))): ?>
+                                        <img class="nationalite-flag" src="https://flagcdn.com/w40/<?= h(strtolower($note['nationalite_code'])) ?>.png" alt="" loading="lazy">
+                                    <?php endif; ?>
+                                    <?= h($note['nationalite'] ?? '—') ?>
+                                </td>
                                 <td class="num"><?= h($note['coefficient']) ?></td>
                                 <td class="num <?= (float)$note['note'] >= 10 ? 'bl-ok' : 'bl-fail' ?>">
                                     <?= number_format((float)$note['note'], 2, ',', ' ') ?>
@@ -313,6 +348,18 @@ require __DIR__ . '/../includes/header.php';
                         <tr class="bl-moyenne">
                             <th colspan="5">Moyenne</th>
                             <td colspan="2"><?= number_format($moyenne, 2, ',', ' ') ?></td>
+                        </tr>
+                        <tr>
+                            <th colspan="2">Note minimale</th>
+                            <td><?= number_format($noteMin, 2, ',', ' ') ?> / 20</td>
+                            <th>Module(s)</th>
+                            <td colspan="3"><?= h(implode(', ', $modulesMin)) ?></td>
+                        </tr>
+                        <tr>
+                            <th colspan="2">Note maximale</th>
+                            <td><?= number_format($noteMax, 2, ',', ' ') ?> / 20</td>
+                            <th>Module(s)</th>
+                            <td colspan="3"><?= h(implode(', ', $modulesMax)) ?></td>
                         </tr>
                     </tfoot>
                 </table>

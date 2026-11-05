@@ -99,6 +99,20 @@ if ($noteIdParam > 0 && empty($selectedModuleId)) {
     }
 }
 
+$moyenneEtudiant = null;
+if ($notesEtudiant) {
+    $totalCoefficientsEtudiant = 0;
+    $totalPointsEtudiant = 0.0;
+    foreach ($notesEtudiant as $noteEtudiant) {
+        $coefficientEtudiant = (int)$noteEtudiant['coefficient'];
+        $totalCoefficientsEtudiant += $coefficientEtudiant;
+        $totalPointsEtudiant += (float)$noteEtudiant['note'] * $coefficientEtudiant;
+    }
+    if ($totalCoefficientsEtudiant > 0) {
+        $moyenneEtudiant = $totalPointsEtudiant / $totalCoefficientsEtudiant;
+    }
+}
+
 // Calculer les données du module courant
 $currentCodeModule = '';
 $currentCoeff      = '';
@@ -153,6 +167,18 @@ require __DIR__ . '/../includes/header.php';
     <p class="ok"><?= h($succesRecherche) ?></p>
 <?php endif; ?>
 
+<?php if ($etudiant): ?>
+    <?php if ($moyenneEtudiant !== null): ?>
+        <p class="<?= $moyenneEtudiant >= 10 ? 'ok' : 'erreur' ?>">
+            <strong><?= $moyenneEtudiant >= 10 ? 'Admis(e)' : 'Ajourné(e)' ?></strong>
+            — Moyenne générale : <?= number_format($moyenneEtudiant, 2, ',', ' ') ?> / 20
+            (seuil de réussite : 10 / 20)
+        </p>
+    <?php else: ?>
+        <p class="petit">Résultat non disponible : aucune note avec coefficient valide.</p>
+    <?php endif; ?>
+<?php endif; ?>
+
 <!-- Formulaire Bulletin de Notes -->
 <form id="form-bulletin" method="post" action="enregistrer.php">
     <input type="hidden" name="etudiant_id" id="etudiant_id" value="<?= h($etudiant['id'] ?? '') ?>">
@@ -190,14 +216,27 @@ require __DIR__ . '/../includes/header.php';
         <tr>
             <td>Nationalité de la note :</td>
             <td>
-                <select name="nationalite_code" id="nationalite_code" required>
-                    <option value="">— Sélectionner une nationalité —</option>
-                    <?php foreach ($nationalites as $nationalite): ?>
-                        <option value="<?= h($nationalite['code']) ?>" <?= $currentNationaliteCode === $nationalite['code'] ? 'selected' : '' ?>>
-                            <?= h($nationalite['libelle']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <div class="nationalite-picker">
+                    <input type="search" id="nationalite-recherche" placeholder="Rechercher une nationalité ou un drapeau..." aria-label="Rechercher une nationalité">
+                    <div class="nationalite-selection">
+                        <select name="nationalite_code" id="nationalite_code" required>
+                            <option value="">— Sélectionner une nationalité —</option>
+                            <?php foreach ($nationalites as $nationalite): ?>
+                                <option value="<?= h($nationalite['code']) ?>" <?= $currentNationaliteCode === $nationalite['code'] ? 'selected' : '' ?>>
+                                    <?= h($nationalite['libelle']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <img
+                            id="nationalite-flag-preview"
+                            class="nationalite-flag-preview"
+                            src="<?= preg_match('/^[A-Za-z]{2}$/', $currentNationaliteCode) ? 'https://flagcdn.com/w80/' . strtolower(h($currentNationaliteCode)) . '.png' : '' ?>"
+                            alt="<?= $currentNationaliteCode !== '' ? 'Drapeau de la nationalité sélectionnée' : '' ?>"
+                            <?= $currentNationaliteCode === '' ? 'hidden' : '' ?>
+                        >
+                    </div>
+                    <small class="petit">Les drapeaux sont chargés depuis FlagCDN selon le code de la nationalité.</small>
+                </div>
             </td>
         </tr>
         </table>
@@ -297,18 +336,39 @@ require __DIR__ . '/../includes/header.php';
                 <?php
                 $totalCoeff = 0;
                 $totalPoints = 0;
+                $noteMin = null;
+                $notesMin = [];
+                $noteMax = null;
+                $notesMax = [];
                 foreach ($notesEtudiant as $ne):
                     $noteVal = (float)$ne['note'];
                     $coeffVal = (int)$ne['coefficient'];
                     $ponderee = $noteVal * $coeffVal;
                     $totalCoeff += $coeffVal;
                     $totalPoints += $ponderee;
+                    if ($noteMin === null || $noteVal < $noteMin) {
+                        $noteMin = $noteVal;
+                        $notesMin = [$ne];
+                    } elseif ($noteVal === $noteMin) {
+                        $notesMin[] = $ne;
+                    }
+                    if ($noteMax === null || $noteVal > $noteMax) {
+                        $noteMax = $noteVal;
+                        $notesMax = [$ne];
+                    } elseif ($noteVal === $noteMax) {
+                        $notesMax[] = $ne;
+                    }
                 ?>
                     <tr>
                         <td><strong><?= h($ne['designation']) ?></strong></td>
                         <td><?= h($ne['code_module']) ?></td>
                         <td><?= h($ne['coefficient']) ?></td>
-                        <td><?= h($ne['nationalite'] ?? '—') ?></td>
+                        <td>
+                            <?php if (preg_match('/^[A-Za-z]{2}$/', (string)($ne['nationalite_code'] ?? ''))): ?>
+                                <img class="nationalite-flag" src="https://flagcdn.com/w40/<?= h(strtolower($ne['nationalite_code'])) ?>.png" alt="" loading="lazy">
+                            <?php endif; ?>
+                            <?= h($ne['nationalite'] ?? '—') ?>
+                        </td>
                         <td>
                             <strong style="color: <?= $noteVal >= 10 ? '#15803d' : '#b91c1c' ?>;">
                                 <?= number_format($noteVal, 2, ',', ' ') ?> / 20
@@ -337,6 +397,14 @@ require __DIR__ . '/../includes/header.php';
                     <td colspan="4" style="font-size: 15px; color: <?= ($totalCoeff > 0 && ($totalPoints / $totalCoeff) >= 10) ? '#15803d' : '#b91c1c' ?>;">
                         <?= $totalCoeff > 0 ? number_format($totalPoints / $totalCoeff, 2, ',', ' ') . ' / 20' : '—' ?>
                     </td>
+                </tr>
+                <tr>
+                    <td colspan="4"><strong>Note minimale :</strong> <?= number_format($noteMin, 2, ',', ' ') ?> / 20</td>
+                    <td colspan="4"><strong>Module(s) :</strong> <?= h(implode(', ', array_map(static fn($n) => $n['designation'], $notesMin))) ?></td>
+                </tr>
+                <tr>
+                    <td colspan="4"><strong>Note maximale :</strong> <?= number_format($noteMax, 2, ',', ' ') ?> / 20</td>
+                    <td colspan="4"><strong>Module(s) :</strong> <?= h(implode(', ', array_map(static fn($n) => $n['designation'], $notesMax))) ?></td>
                 </tr>
             </tfoot>
         </table>
