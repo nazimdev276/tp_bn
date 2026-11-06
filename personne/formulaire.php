@@ -14,6 +14,7 @@ $sports = charger_options_colonne($pdo, 'sport', 'libelle', 'libelle');
 $modelesVoiture = charger_options_colonne($pdo, 'modele_voiture', 'libelle', 'libelle', $MODELES_VOITURE);
 $filieres = charger_options_colonne($pdo, 'filiere', 'nom', 'id', $FILIERES);
 
+$modeRecherche = ($_GET['mode'] ?? 'id') === 'numero' ? 'numero' : 'id';
 $idRecherche = $_GET['id'] ?? '';
 $erreurRecherche = null;
 $personne = null;
@@ -24,16 +25,22 @@ if ($idRecherche !== '') {
         $idRecherche = '';
     } else {
         $idRecherche = trim((string)$idRecherche);
-        $idRechercheValide = filter_var($idRecherche, FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1, 'max_range' => 2147483647],
-        ]);
-        if ($idRechercheValide === false) {
-            $erreurRecherche = "Identifiant invalide.";
-            $idRechercheValide = null;
-        } else {
-            $stmt = $pdo->prepare('SELECT * FROM personne WHERE id = :id');
-            $stmt->execute([':id' => $idRechercheValide]);
+        if ($modeRecherche === 'numero') {
+            $stmt = $pdo->prepare('SELECT * FROM personne WHERE numero = :numero ORDER BY id LIMIT 1');
+            $stmt->execute([':numero' => $idRecherche]);
             $personne = $stmt->fetch() ?: null;
+        } else {
+            $idRechercheValide = filter_var($idRecherche, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 1, 'max_range' => 2147483647],
+            ]);
+            if ($idRechercheValide === false) {
+                $erreurRecherche = "Identifiant invalide.";
+                $idRechercheValide = null;
+            } else {
+                $stmt = $pdo->prepare('SELECT * FROM personne WHERE id = :id');
+                $stmt->execute([':id' => $idRechercheValide]);
+                $personne = $stmt->fetch() ?: null;
+            }
         }
     }
 }
@@ -49,28 +56,36 @@ $titre = 'Formulaire Personne';
 require __DIR__ . '/../includes/header.php';
 ?>
 <form method="get" action="formulaire.php">
-    <label for="recherche-id">Rechercher ou créer par ID :</label>
-    <input type="text" name="id" id="recherche-id" inputmode="numeric" pattern="[1-9][0-9]*"
+    <label for="mode-recherche">Rechercher par :</label>
+    <select name="mode" id="mode-recherche">
+        <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+        <option value="numero" <?= $modeRecherche === 'numero' ? 'selected' : '' ?>>Numéro</option>
+    </select>
+    <input type="text" name="id" id="recherche-id" inputmode="<?= $modeRecherche === 'id' ? 'numeric' : 'text' ?>"
            value="<?= h($idRecherche) ?>" required>
     <button type="submit">Rechercher</button>
 </form>
 <?php if ($erreurRecherche): ?>
     <p class="erreur"><?= h($erreurRecherche) ?></p>
-<?php elseif ($idRechercheValide !== null && $personne): ?>
+<?php elseif ($personne): ?>
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin: 12px 0;">
-        <p class="ok" style="margin: 0;">Personne trouvée (ID <?= h($idRechercheValide) ?>) : modifiez les champs puis enregistrez.</p>
-        <form method="post" action="supprimer.php" onsubmit="return confirm('Supprimer définitivement cette personne (ID <?= h($idRechercheValide) ?>) ?');" style="margin: 0;">
-            <input type="hidden" name="id" value="<?= h($idRechercheValide) ?>">
+        <p class="ok" style="margin: 0;">Personne trouvée (ID <?= h($personne['id']) ?>) : modifiez les champs puis enregistrez.</p>
+        <form method="post" action="supprimer.php" onsubmit="return confirm('Supprimer définitivement cette personne (ID <?= h($personne['id']) ?>) ?');" style="margin: 0;">
+            <input type="hidden" name="id" value="<?= h($personne['id']) ?>">
             <button type="submit" style="background: #fef2f2; color: #dc2626; border-color: #fecaca; margin: 0;">Supprimer cette personne</button>
         </form>
     </div>
 <?php elseif ($idRechercheValide !== null): ?>
     <p>Aucune personne trouvée pour l’ID <?= h($idRechercheValide) ?>. Remplissez les champs pour la créer avec cet ID.</p>
+<?php elseif ($modeRecherche === 'numero' && $idRecherche !== '' && !$erreurRecherche): ?>
+    <p>Aucune personne trouvée pour le numéro <?= h($idRecherche) ?>. Remplissez les champs pour en créer une.</p>
 <?php endif; ?>
 
 <!-- enctype="multipart/form-data" est obligatoire pour envoyer une image -->
 <form id="form-personne" method="post" action="enregistrer.php" enctype="multipart/form-data">
-    <?php if ($idRechercheValide !== null): ?>
+    <?php if ($personne): ?>
+        <input type="hidden" name="id" value="<?= h($personne['id']) ?>">
+    <?php elseif ($idRechercheValide !== null): ?>
         <input type="hidden" name="id" value="<?= h($idRechercheValide) ?>">
     <?php endif; ?>
 

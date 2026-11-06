@@ -6,6 +6,7 @@ require_once __DIR__ . '/../includes/fonctions.php';
 assurer_schema_note($pdo);
 
 $termeRecherche = trim((string)($_GET['q'] ?? $_GET['id'] ?? ''));
+$modeRecherche = in_array($_GET['mode'] ?? 'all', ['all', 'id', 'numero'], true) ? ($_GET['mode'] ?? 'all') : 'all';
 $erreurRecherche = false;
 $notes = [];
 $resultatsEtudiants = [];
@@ -30,7 +31,14 @@ $modulesMin = [];
 $modulesMax = [];
 if ($termeRecherche !== '') {
     $idValide = filter_var($termeRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    if ($idValide !== false) {
+    if ($modeRecherche === 'id') {
+        $sql .= ' WHERE n.id = :id OR p.id = :pid';
+        $params[':id'] = $idValide !== false ? $idValide : 0;
+        $params[':pid'] = $idValide !== false ? $idValide : 0;
+    } elseif ($modeRecherche === 'numero') {
+        $sql .= ' WHERE p.numero = :pnum';
+        $params[':pnum'] = $termeRecherche;
+    } elseif ($idValide !== false) {
         $sql .= ' WHERE n.id = :id OR p.id = :pid OR p.numero = :pnum OR p.nom_prenom LIKE :nom OR m.code_module LIKE :mod OR m.designation LIKE :des OR COALESCE(nat.libelle, nat_personne.libelle) LIKE :nat';
         $params[':id']   = $idValide;
         $params[':pid']  = $idValide;
@@ -97,7 +105,12 @@ require __DIR__ . '/../includes/header.php';
 
 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
     <form method="get" action="liste.php" class="form-recherche" style="margin: 0;">
-        <label for="search-input">Rechercher une note :</label>
+        <label for="mode-recherche">Rechercher une note :</label>
+        <select name="mode" id="mode-recherche">
+            <option value="all" <?= $modeRecherche === 'all' ? 'selected' : '' ?>>Tous les champs</option>
+            <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID note / étudiant</option>
+            <option value="numero" <?= $modeRecherche === 'numero' ? 'selected' : '' ?>>Numéro étudiant</option>
+        </select>
         <input type="text" name="q" id="search-input" placeholder="Étudiant, N°, module, nationalité..." value="<?= h($termeRecherche) ?>">
         <button type="submit">Rechercher</button>
         <?php if ($termeRecherche !== ''): ?>

@@ -15,25 +15,37 @@ if (!$filieres) {
 $stmtModules = $pdo->query('SELECT id, code_module, designation, coefficient, filiere FROM module ORDER BY filiere ASC, code_module ASC');
 $tousLesModules = $stmtModules ? $stmtModules->fetchAll() : [];
 
+$modeRecherche = ($_GET['mode'] ?? 'id') === 'numero' ? 'numero' : 'id';
 $idRecherche = trim((string)($_GET['id'] ?? ''));
 $enseignant = null;
 $messageRecherche = null;
 
 if ($idRecherche !== '') {
-    $idValide = filter_var($idRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    if ($idValide !== false) {
-        $stmt = $pdo->prepare('SELECT * FROM enseignant WHERE id = :id');
-        $stmt->execute([':id' => $idValide]);
+    if ($modeRecherche === 'numero') {
+        $stmt = $pdo->prepare('SELECT * FROM enseignant WHERE numero = :numero ORDER BY id LIMIT 1');
+        $stmt->execute([':numero' => $idRecherche]);
         $enseignant = $stmt->fetch() ?: null;
         if ($enseignant) {
-            $messageRecherche = "Enseignant trouvé (ID {$idValide}) : vous pouvez le modifier ou le supprimer.";
+            $messageRecherche = "Enseignant trouvé (N° {$idRecherche}, ID {$enseignant['id']}) : vous pouvez le modifier ou le supprimer.";
         } else {
-            $messageRecherche = "Aucun enseignant trouvé pour l'ID {$idValide}. Remplissez le formulaire pour le créer avec cet ID.";
+            $messageRecherche = "Aucun enseignant trouvé pour le numéro {$idRecherche}. Remplissez le formulaire pour en créer un.";
+        }
+    } else {
+        $idValide = filter_var($idRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($idValide !== false) {
+            $stmt = $pdo->prepare('SELECT * FROM enseignant WHERE id = :id');
+            $stmt->execute([':id' => $idValide]);
+            $enseignant = $stmt->fetch() ?: null;
+            if ($enseignant) {
+                $messageRecherche = "Enseignant trouvé (ID {$idValide}) : vous pouvez le modifier ou le supprimer.";
+            } else {
+                $messageRecherche = "Aucun enseignant trouvé pour l'ID {$idValide}. Remplissez le formulaire pour le créer avec cet ID.";
+            }
         }
     }
 }
 
-$idCourant            = $enseignant['id'] ?? $idRecherche;
+$idCourant            = $enseignant['id'] ?? ($modeRecherche === 'id' ? $idRecherche : '');
 $numeroCourant        = $enseignant['numero'] ?? '';
 $civiliteCourante     = $enseignant['civilite'] ?? 'Monsieur';
 $nomPrenomCourant     = $enseignant['nom_prenom'] ?? '';
@@ -54,8 +66,12 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <form method="get" action="enseignant.php" class="form-recherche">
-    <label for="recherche-id">Rechercher par ID :</label>
-    <input type="number" name="id" id="recherche-id" min="1" value="<?= h($idRecherche) ?>" placeholder="ex: 1">
+    <label for="mode-recherche">Rechercher par :</label>
+    <select name="mode" id="mode-recherche">
+        <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+        <option value="numero" <?= $modeRecherche === 'numero' ? 'selected' : '' ?>>Numéro</option>
+    </select>
+    <input type="text" name="id" id="recherche-id" value="<?= h($idRecherche) ?>" placeholder="<?= $modeRecherche === 'id' ? 'ex: 1' : 'ex: 102' ?>">
     <button type="submit">Rechercher</button>
     <?php if ($idRecherche !== ''): ?>
         <a href="enseignant.php" style="margin-left: 10px;">Réinitialiser</a>
@@ -127,7 +143,14 @@ require __DIR__ . '/../includes/header.php';
                     </div>
                     <div class="multiselect-menu" id="modules-menu">
                         <div class="multiselect-search-box">
-                            <input type="text" id="modules-filter" placeholder="Rechercher un module (code, nom, filière)..." autocomplete="off">
+                            <select id="modules-filter-mode" aria-label="Rechercher un module par">
+                                <option value="all">Tous les champs</option>
+                                <option value="id">ID</option>
+                                <option value="code">Code</option>
+                                <option value="designation">Désignation</option>
+                                <option value="filiere">Filière</option>
+                            </select>
+                            <input type="text" id="modules-filter" placeholder="Rechercher un module..." autocomplete="off">
                         </div>
                         <div class="multiselect-actions">
                             <button type="button" class="btn-text-sm" id="btn-select-all-modules">Tout cocher</button>
@@ -142,7 +165,7 @@ require __DIR__ . '/../includes/header.php';
                             <?php else: ?>
                                 <?php foreach ($tousLesModules as $mod): ?>
                                     <?php $isCoche = in_array($mod['code_module'], $modulesCourants, true); ?>
-                                    <label class="multiselect-item" data-code="<?= h($mod['code_module']) ?>" data-filiere="<?= h($mod['filiere']) ?>" data-desig="<?= h($mod['designation']) ?>">
+                                    <label class="multiselect-item" data-id="<?= h($mod['id']) ?>" data-code="<?= h($mod['code_module']) ?>" data-filiere="<?= h($mod['filiere']) ?>" data-desig="<?= h($mod['designation']) ?>">
                                         <input type="checkbox" name="modules[]" value="<?= h($mod['code_module']) ?>" <?= $isCoche ? 'checked' : '' ?>>
                                         <span class="mod-badge"><?= h($mod['code_module']) ?></span>
                                         <span class="mod-name"><?= h($mod['designation']) ?></span>

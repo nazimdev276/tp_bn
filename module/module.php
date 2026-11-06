@@ -12,25 +12,37 @@ if (!$filieres) {
     $filieres = $FILIERES;
 }
 
+$modeRecherche = ($_GET['mode'] ?? 'id') === 'code' ? 'code' : 'id';
 $idRecherche = trim((string)($_GET['id'] ?? ''));
 $module = null;
 $messageRecherche = null;
 
 if ($idRecherche !== '') {
-    $idValide = filter_var($idRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    if ($idValide !== false) {
-        $stmt = $pdo->prepare('SELECT * FROM module WHERE id = :id');
-        $stmt->execute([':id' => $idValide]);
+    if ($modeRecherche === 'code') {
+        $stmt = $pdo->prepare('SELECT * FROM module WHERE code_module = :code ORDER BY id LIMIT 1');
+        $stmt->execute([':code' => $idRecherche]);
         $module = $stmt->fetch() ?: null;
         if ($module) {
-            $messageRecherche = "Module trouvé (ID {$idValide}) : vous pouvez le modifier ou le supprimer.";
+            $messageRecherche = "Module trouvé (code {$idRecherche}, ID {$module['id']}) : vous pouvez le modifier ou le supprimer.";
         } else {
-            $messageRecherche = "Aucun module trouvé pour l'ID {$idValide}. Remplissez le formulaire pour le créer avec cet ID.";
+            $messageRecherche = "Aucun module trouvé pour le code {$idRecherche}. Remplissez le formulaire pour en créer un.";
+        }
+    } else {
+        $idValide = filter_var($idRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($idValide !== false) {
+            $stmt = $pdo->prepare('SELECT * FROM module WHERE id = :id');
+            $stmt->execute([':id' => $idValide]);
+            $module = $stmt->fetch() ?: null;
+            if ($module) {
+                $messageRecherche = "Module trouvé (ID {$idValide}) : vous pouvez le modifier ou le supprimer.";
+            } else {
+                $messageRecherche = "Aucun module trouvé pour l'ID {$idValide}. Remplissez le formulaire pour le créer avec cet ID.";
+            }
         }
     }
 }
 
-$idCourant            = $module['id'] ?? $idRecherche;
+$idCourant            = $module['id'] ?? ($modeRecherche === 'id' ? $idRecherche : '');
 $codeModuleCourant    = $module['code_module'] ?? '';
 $designationCourante  = $module['designation'] ?? '';
 $coefficientCourant   = $module['coefficient'] ?? 1;
@@ -43,8 +55,12 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <form method="get" action="module.php" class="form-recherche">
-    <label for="recherche-id">Rechercher par ID :</label>
-    <input type="number" name="id" id="recherche-id" min="1" value="<?= h($idRecherche) ?>" placeholder="ex: 1">
+    <label for="mode-recherche">Rechercher par :</label>
+    <select name="mode" id="mode-recherche">
+        <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+        <option value="code" <?= $modeRecherche === 'code' ? 'selected' : '' ?>>Code module</option>
+    </select>
+    <input type="text" name="id" id="recherche-id" value="<?= h($idRecherche) ?>" placeholder="<?= $modeRecherche === 'id' ? 'ex: 1' : 'ex: BDD' ?>">
     <button type="submit">Rechercher</button>
     <?php if ($idRecherche !== ''): ?>
         <a href="module.php" style="margin-left: 10px;">Réinitialiser</a>

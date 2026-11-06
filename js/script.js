@@ -236,6 +236,7 @@ function initModulesMultiselect(form) {
     var tagsBox     = document.getElementById('modules-tags');
     var placeholder = document.getElementById('modules-placeholder');
     var searchInput = document.getElementById('modules-filter');
+    var searchMode  = document.getElementById('modules-filter-mode');
     var btnAll      = document.getElementById('btn-select-all-modules');
     var btnClear    = document.getElementById('btn-clear-modules');
     var btnFiliere  = document.getElementById('btn-filter-filiere');
@@ -308,20 +309,30 @@ function initModulesMultiselect(form) {
     });
 
     // Recherche / filtrage en direct
-    if (searchInput) {
-        searchInput.addEventListener('input', function () {
-            var q = this.value.toLowerCase().trim();
-            items.forEach(function (it) {
-                var code = (it.getAttribute('data-code') || '').toLowerCase();
-                var desig = (it.getAttribute('data-desig') || '').toLowerCase();
-                var fil = (it.getAttribute('data-filiere') || '').toLowerCase();
-                if (q === '' || code.indexOf(q) !== -1 || desig.indexOf(q) !== -1 || fil.indexOf(q) !== -1) {
-                    it.style.display = 'flex';
-                } else {
-                    it.style.display = 'none';
-                }
+    function filtrerModules() {
+        if (!searchInput) return;
+        var mode = searchMode ? searchMode.value : 'all';
+        var q = searchInput.value.toLowerCase().trim();
+        items.forEach(function (it) {
+            var champs = {
+                id: it.getAttribute('data-id') || '',
+                code: it.getAttribute('data-code') || '',
+                designation: it.getAttribute('data-desig') || '',
+                filiere: it.getAttribute('data-filiere') || ''
+            };
+            var valeurs = mode === 'all' ? Object.keys(champs).map(function (cle) { return champs[cle]; }) : [champs[mode] || ''];
+            var correspond = q === '' || valeurs.some(function (valeur) {
+                return valeur.toLowerCase().indexOf(q) !== -1;
             });
+            it.style.display = correspond ? 'flex' : 'none';
         });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrerModules);
+    }
+    if (searchMode) {
+        searchMode.addEventListener('change', filtrerModules);
     }
 
     // Boutons Tout cocher / Tout décocher
@@ -549,6 +560,7 @@ function initBulletin(form) {
     var inputNoteId  = document.getElementById('note_id');
     var selectNationalite = document.getElementById('nationalite_code');
     var rechercheNationalite = document.getElementById('nationalite-recherche');
+    var modeRechercheNationalite = document.getElementById('nationalite-recherche-mode');
     var drapeauNationalite = document.getElementById('nationalite-flag-preview');
     var badgeNote    = document.getElementById('note-existante-badge');
 
@@ -566,14 +578,22 @@ function initBulletin(form) {
         }
     }
 
-    if (rechercheNationalite && selectNationalite) {
-        rechercheNationalite.addEventListener('input', function () {
-            var recherche = rechercheNationalite.value.trim().toLocaleLowerCase();
-            Array.prototype.forEach.call(selectNationalite.options, function (option) {
-                option.hidden = option.value !== '' &&
-                    (option.text + ' ' + option.value).toLocaleLowerCase().indexOf(recherche) === -1;
-            });
+    function filtrerNationalites() {
+        if (!rechercheNationalite || !selectNationalite) return;
+        var recherche = rechercheNationalite.value.trim().toLocaleLowerCase();
+        var mode = modeRechercheNationalite ? modeRechercheNationalite.value : 'all';
+        Array.prototype.forEach.call(selectNationalite.options, function (option) {
+            var code = option.value.toLocaleLowerCase();
+            var libelle = option.text.toLocaleLowerCase();
+            var valeur = mode === 'code' ? code : (mode === 'libelle' ? libelle : libelle + ' ' + code);
+            option.hidden = option.value !== '' && valeur.indexOf(recherche) === -1;
         });
+    }
+    if (rechercheNationalite && selectNationalite) {
+        rechercheNationalite.addEventListener('input', filtrerNationalites);
+        if (modeRechercheNationalite) {
+            modeRechercheNationalite.addEventListener('change', filtrerNationalites);
+        }
     }
     if (selectNationalite) {
         selectNationalite.addEventListener('change', majDrapeauNationalite);

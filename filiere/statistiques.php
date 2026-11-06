@@ -10,14 +10,26 @@ $erreur = null;
 $totalAdmis = 0;
 $totalAjournes = 0;
 $totalNonEvalues = 0;
-$nomFiliereRecherche = trim((string)($_GET['filiere'] ?? ''));
+$termeRechercheFiliere = trim((string)($_GET['filiere'] ?? ''));
+$modeRecherche = ($_GET['mode'] ?? 'nom') === 'id' ? 'id' : 'nom';
+$nomFiliereRecherche = '';
 $filieres = [];
 $detailsEtudiants = [];
 
 try {
     $filieres = $pdo->query('SELECT nom FROM filiere ORDER BY nom ASC')->fetchAll(PDO::FETCH_COLUMN);
-    if ($nomFiliereRecherche !== '' && !in_array($nomFiliereRecherche, $filieres, true)) {
-        $erreur = "Aucune filière trouvée pour « {$nomFiliereRecherche} ».";
+    if ($termeRechercheFiliere !== '') {
+        if ($modeRecherche === 'id') {
+            $idFiliere = filter_var($termeRechercheFiliere, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $stmtFiliere = $pdo->prepare('SELECT nom FROM filiere WHERE id = :id');
+            $stmtFiliere->execute([':id' => $idFiliere !== false ? $idFiliere : 0]);
+            $nomFiliereRecherche = $stmtFiliere->fetchColumn() ?: '';
+        } elseif (in_array($termeRechercheFiliere, $filieres, true)) {
+            $nomFiliereRecherche = $termeRechercheFiliere;
+        }
+        if ($nomFiliereRecherche === '') {
+            $erreur = "Aucune filière trouvée pour « {$termeRechercheFiliere} ».";
+        }
     }
 
     $sql = '
@@ -224,15 +236,19 @@ require __DIR__ . '/../includes/header.php';
     <p>Aucune filière enregistrée.</p>
 <?php else: ?>
     <form method="get" action="statistiques.php" class="form-recherche">
-        <label for="filiere">Rechercher une filière :</label>
-        <input type="search" name="filiere" id="filiere" list="filieres-disponibles" value="<?= h($nomFiliereRecherche) ?>" placeholder="Toutes les filières" autocomplete="off">
+        <label for="mode-recherche">Rechercher une filière par :</label>
+        <select name="mode" id="mode-recherche">
+            <option value="nom" <?= $modeRecherche === 'nom' ? 'selected' : '' ?>>Nom</option>
+            <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+        </select>
+        <input type="search" name="filiere" id="filiere" <?= $modeRecherche === 'nom' ? 'list="filieres-disponibles"' : '' ?> value="<?= h($termeRechercheFiliere) ?>" placeholder="<?= $modeRecherche === 'id' ? 'ex: 3' : 'Toutes les filières' ?>" autocomplete="off">
         <datalist id="filieres-disponibles">
             <?php foreach ($filieres as $nomFiliere): ?>
                 <option value="<?= h($nomFiliere) ?>"></option>
             <?php endforeach; ?>
         </datalist>
         <button type="submit">Filtrer les graphiques</button>
-        <?php if ($nomFiliereRecherche !== ''): ?>
+        <?php if ($termeRechercheFiliere !== ''): ?>
             <a href="statistiques.php">Afficher toutes</a>
         <?php endif; ?>
     </form>

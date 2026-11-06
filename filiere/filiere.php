@@ -3,25 +3,37 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/fonctions.php';
 
+$modeRecherche = ($_GET['mode'] ?? 'id') === 'nom' ? 'nom' : 'id';
 $idRecherche = trim((string)($_GET['id'] ?? ''));
 $filiere = null;
 $messageRecherche = null;
 
 if ($idRecherche !== '') {
-    $idValide = filter_var($idRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    if ($idValide !== false) {
-        $stmt = $pdo->prepare('SELECT * FROM filiere WHERE id = :id');
-        $stmt->execute([':id' => $idValide]);
+    if ($modeRecherche === 'nom') {
+        $stmt = $pdo->prepare('SELECT * FROM filiere WHERE nom = :nom');
+        $stmt->execute([':nom' => $idRecherche]);
         $filiere = $stmt->fetch() ?: null;
         if ($filiere) {
-            $messageRecherche = "Filière trouvée (ID {$idValide}) : vous pouvez la modifier ou la supprimer.";
+            $messageRecherche = "Filière trouvée ({$filiere['nom']}, ID {$filiere['id']}) : vous pouvez la modifier ou la supprimer.";
         } else {
-            $messageRecherche = "Aucune filière avec l'ID {$idValide}. Remplissez le nom pour la créer avec cet ID.";
+            $messageRecherche = "Aucune filière trouvée pour le nom « {$idRecherche} ». Remplissez le formulaire pour en créer une.";
+        }
+    } else {
+        $idValide = filter_var($idRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($idValide !== false) {
+            $stmt = $pdo->prepare('SELECT * FROM filiere WHERE id = :id');
+            $stmt->execute([':id' => $idValide]);
+            $filiere = $stmt->fetch() ?: null;
+            if ($filiere) {
+                $messageRecherche = "Filière trouvée (ID {$idValide}) : vous pouvez la modifier ou la supprimer.";
+            } else {
+                $messageRecherche = "Aucune filière avec l'ID {$idValide}. Remplissez le nom pour la créer avec cet ID.";
+            }
         }
     }
 }
 
-$idCourant = $filiere['id'] ?? $idRecherche;
+$idCourant = $filiere['id'] ?? ($modeRecherche === 'id' ? $idRecherche : '');
 $nomCourant = $filiere['nom'] ?? '';
 
 $base = '../';
@@ -30,8 +42,12 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <form method="get" action="filiere.php" class="form-recherche">
-    <label for="recherche-id">Rechercher par ID :</label>
-    <input type="number" name="id" id="recherche-id" min="1" value="<?= h($idRecherche) ?>" placeholder="ex: 1">
+    <label for="mode-recherche">Rechercher par :</label>
+    <select name="mode" id="mode-recherche">
+        <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+        <option value="nom" <?= $modeRecherche === 'nom' ? 'selected' : '' ?>>Nom de filière</option>
+    </select>
+    <input type="text" name="id" id="recherche-id" value="<?= h($idRecherche) ?>" placeholder="<?= $modeRecherche === 'id' ? 'ex: 1' : 'ex: 3ISIL' ?>">
     <button type="submit">Rechercher</button>
     <?php if ($idRecherche !== ''): ?>
         <a href="filiere.php" style="margin-left: 10px;">Réinitialiser</a>

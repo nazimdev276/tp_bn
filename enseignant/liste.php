@@ -4,21 +4,31 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/fonctions.php';
 
 $q = trim((string)($_GET['q'] ?? ''));
+$modeRecherche = in_array($_GET['mode'] ?? 'all', ['all', 'id', 'numero'], true) ? ($_GET['mode'] ?? 'all') : 'all';
 $enseignants = [];
 $erreur = null;
 
 try {
     if ($q !== '') {
-        $stmt = $pdo->prepare(
-            'SELECT * FROM enseignant
-             WHERE id = :id OR numero LIKE :q OR nom_prenom LIKE :q OR specialite LIKE :q OR grade LIKE :q OR filiere LIKE :q OR modules LIKE :q
-             ORDER BY id'
-        );
-        $idVal = filter_var($q, FILTER_VALIDATE_INT);
-        $stmt->execute([
-            ':id' => $idVal !== false ? $idVal : 0,
-            ':q'  => '%' . $q . '%',
-        ]);
+        if ($modeRecherche === 'id') {
+            $idVal = filter_var($q, FILTER_VALIDATE_INT);
+            $stmt = $pdo->prepare('SELECT * FROM enseignant WHERE id = :id ORDER BY id');
+            $stmt->execute([':id' => $idVal !== false ? $idVal : 0]);
+        } elseif ($modeRecherche === 'numero') {
+            $stmt = $pdo->prepare('SELECT * FROM enseignant WHERE numero LIKE :q ORDER BY id');
+            $stmt->execute([':q' => '%' . $q . '%']);
+        } else {
+            $stmt = $pdo->prepare(
+                'SELECT * FROM enseignant
+                 WHERE id = :id OR numero LIKE :q OR nom_prenom LIKE :q OR specialite LIKE :q OR grade LIKE :q OR filiere LIKE :q OR modules LIKE :q
+                 ORDER BY id'
+            );
+            $idVal = filter_var($q, FILTER_VALIDATE_INT);
+            $stmt->execute([
+                ':id' => $idVal !== false ? $idVal : 0,
+                ':q'  => '%' . $q . '%',
+            ]);
+        }
     } else {
         $stmt = $pdo->query('SELECT * FROM enseignant ORDER BY id');
     }
@@ -33,7 +43,12 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <form method="get" action="liste.php" class="form-recherche">
-    <label for="search-enseignant">Rechercher un enseignant :</label>
+    <label for="mode-recherche">Rechercher un enseignant :</label>
+    <select name="mode" id="mode-recherche">
+        <option value="all" <?= $modeRecherche === 'all' ? 'selected' : '' ?>>Tous les champs</option>
+        <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+        <option value="numero" <?= $modeRecherche === 'numero' ? 'selected' : '' ?>>Numéro</option>
+    </select>
     <input type="text" name="q" id="search-enseignant" placeholder="ID, nom, numéro, filière, module, spécialité..." value="<?= h($q) ?>">
     <button type="submit">Rechercher</button>
     <?php if ($q !== ''): ?>

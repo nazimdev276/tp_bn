@@ -4,7 +4,8 @@ require_once __DIR__ . '/../includes/fonctions.php';
 
 assurer_schema_note($pdo);
 
-$numero = trim((string)($_GET['numero'] ?? ''));
+$modeRecherche = ($_GET['mode'] ?? 'numero') === 'id' ? 'id' : 'numero';
+$termeRecherche = trim((string)($_GET['recherche'] ?? $_GET['numero'] ?? $_GET['id'] ?? ''));
 $etudiant = null;
 $notes = [];
 $erreur = null;
@@ -15,18 +16,30 @@ $noteMax = null;
 $modulesMin = [];
 $modulesMax = [];
 
-if ($numero !== '') {
-    $stmt = $pdo->prepare('
-        SELECT id, numero, civilite, nom_prenom, filiere, adresse, photo
-        FROM personne
-        WHERE numero = :numero
-        LIMIT 1
-    ');
-    $stmt->execute([':numero' => $numero]);
+if ($termeRecherche !== '') {
+    if ($modeRecherche === 'id') {
+        $idEtudiant = filter_var($termeRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $stmt = $pdo->prepare('
+            SELECT id, numero, civilite, nom_prenom, filiere, adresse, photo
+            FROM personne
+            WHERE id = :id
+            LIMIT 1
+        ');
+        $stmt->execute([':id' => $idEtudiant !== false ? $idEtudiant : 0]);
+    } else {
+        $stmt = $pdo->prepare('
+            SELECT id, numero, civilite, nom_prenom, filiere, adresse, photo
+            FROM personne
+            WHERE numero = :numero
+            ORDER BY id
+            LIMIT 1
+        ');
+        $stmt->execute([':numero' => $termeRecherche]);
+    }
     $etudiant = $stmt->fetch() ?: null;
 
     if (!$etudiant) {
-        $erreur = "Aucun étudiant trouvé pour le numéro « {$numero} ».";
+        $erreur = "Aucun étudiant trouvé pour " . ($modeRecherche === 'id' ? "l'identifiant" : "le numéro") . " « {$termeRecherche} ».";
     } else {
         $stmt = $pdo->prepare('
             SELECT m.code_module, m.designation, m.coefficient, n.note,
@@ -259,8 +272,12 @@ require __DIR__ . '/../includes/header.php';
 
     <!-- Search form: always visible, so you can search again after an error -->
     <form method="get" action="afficher_bulletin.php" class="bl-search">
-        <label for="numero-etudiant">Numéro d'étudiant :</label>
-        <input type="text" name="numero" id="numero-etudiant" value="<?= h($numero) ?>" placeholder="ex: 15" required>
+        <label for="mode-recherche">Rechercher l'étudiant par :</label>
+        <select name="mode" id="mode-recherche">
+            <option value="numero" <?= $modeRecherche === 'numero' ? 'selected' : '' ?>>Numéro</option>
+            <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+        </select>
+        <input type="text" name="recherche" id="numero-etudiant" value="<?= h($termeRecherche) ?>" placeholder="<?= $modeRecherche === 'id' ? 'ex: 1' : 'ex: 15' ?>" required>
         <button type="submit">Rechercher</button>
     </form>
 

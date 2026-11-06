@@ -5,16 +5,25 @@ require_once __DIR__ . '/../includes/fonctions.php';
 
 assurer_schema_note($pdo);
 
-$nomFiliere = trim((string)($_GET['filiere'] ?? ''));
+$modeRecherche = ($_GET['mode'] ?? 'nom') === 'id' ? 'id' : 'nom';
+$termeRecherche = trim((string)($_GET['filiere'] ?? ''));
+$nomFiliere = '';
 $filiere = null;
 $etudiants = [];
 $erreur = null;
 
-if ($nomFiliere !== '') {
+if ($termeRecherche !== '') {
     try {
-        $stmtFiliere = $pdo->prepare('SELECT nom FROM filiere WHERE nom = :nom');
-        $stmtFiliere->execute([':nom' => $nomFiliere]);
+        if ($modeRecherche === 'id') {
+            $idFiliere = filter_var($termeRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $stmtFiliere = $pdo->prepare('SELECT nom FROM filiere WHERE id = :id');
+            $stmtFiliere->execute([':id' => $idFiliere !== false ? $idFiliere : 0]);
+        } else {
+            $stmtFiliere = $pdo->prepare('SELECT nom FROM filiere WHERE nom = :nom');
+            $stmtFiliere->execute([':nom' => $termeRecherche]);
+        }
         $filiere = $stmtFiliere->fetchColumn() ?: null;
+        $nomFiliere = $filiere ?: $termeRecherche;
 
         if ($filiere) {
             $stmtEtudiants = $pdo->prepare('
@@ -82,18 +91,22 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <form method="get" action="etudiants.php" class="form-recherche">
-    <label for="filiere">Nom de la filière :</label>
-    <input type="text" name="filiere" id="filiere" value="<?= h($nomFiliere) ?>" placeholder="ex: 3ISIL" required>
+    <label for="mode-recherche">Rechercher la filière par :</label>
+    <select name="mode" id="mode-recherche">
+        <option value="nom" <?= $modeRecherche === 'nom' ? 'selected' : '' ?>>Nom</option>
+        <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+    </select>
+    <input type="text" name="filiere" id="filiere" value="<?= h($termeRecherche) ?>" placeholder="<?= $modeRecherche === 'id' ? 'ex: 3' : 'ex: 3ISIL' ?>" required>
     <button type="submit">Rechercher les étudiants</button>
-    <?php if ($nomFiliere !== ''): ?>
+    <?php if ($termeRecherche !== ''): ?>
         <a href="etudiants.php">Réinitialiser</a>
     <?php endif; ?>
 </form>
 
 <?php if ($erreur): ?>
     <p class="erreur"><?= h($erreur) ?></p>
-<?php elseif ($nomFiliere !== '' && !$filiere): ?>
-    <p class="erreur">Aucune filière trouvée pour « <?= h($nomFiliere) ?> ».</p>
+<?php elseif ($termeRecherche !== '' && !$filiere): ?>
+    <p class="erreur">Aucune filière trouvée pour « <?= h($termeRecherche) ?> ».</p>
 <?php elseif ($filiere): ?>
     <h3>Étudiants de la filière <?= h($filiere) ?></h3>
     <?php if (!$etudiants): ?>

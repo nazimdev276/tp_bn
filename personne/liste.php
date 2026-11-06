@@ -4,6 +4,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/fonctions.php';
 
 $termeRecherche = trim((string)($_GET['q'] ?? $_GET['id'] ?? ''));
+$modeRecherche = in_array($_GET['mode'] ?? 'all', ['all', 'id', 'numero'], true) ? ($_GET['mode'] ?? 'all') : 'all';
 $erreurRecherche = false;
 $personnes = [];
 
@@ -17,7 +18,13 @@ if ($termeRecherche !== '') {
         'options' => ['min_range' => 1, 'max_range' => 2147483647],
     ]);
 
-    if ($idValide !== false) {
+    if ($modeRecherche === 'id') {
+        $sql .= ' WHERE p.id = :id';
+        $params[':id'] = $idValide !== false ? (int)$idValide : 0;
+    } elseif ($modeRecherche === 'numero') {
+        $sql .= ' WHERE p.numero = :numero';
+        $params[':numero'] = $termeRecherche;
+    } elseif ($idValide !== false) {
         $sql .= ' WHERE p.id = :id OR p.nom_prenom LIKE :nom';
         $params[':id'] = (int)$termeRecherche;
         $params[':nom'] = '%' . $termeRecherche . '%';
@@ -43,7 +50,12 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <form method="get" action="liste.php" class="form-recherche">
-    <label for="search-input">Rechercher une personne :</label>
+    <label for="mode-recherche">Rechercher une personne :</label>
+    <select name="mode" id="mode-recherche">
+        <option value="all" <?= $modeRecherche === 'all' ? 'selected' : '' ?>>Tous les champs</option>
+        <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+        <option value="numero" <?= $modeRecherche === 'numero' ? 'selected' : '' ?>>Numéro</option>
+    </select>
     <input type="text" name="q" id="search-input" placeholder="ID ou Nom / Prénom..." value="<?= h($termeRecherche) ?>">
     <button type="submit">Rechercher</button>
     <?php if ($termeRecherche !== ''): ?>

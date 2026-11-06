@@ -14,6 +14,7 @@ $nationalites = $stmtNationalites->fetchAll();
 
 // Recherche d'un étudiant (par ID ou Numéro)
 $termeRecherche = trim((string)($_GET['recherche'] ?? $_GET['id'] ?? $_GET['etudiant_id'] ?? ''));
+$modeRecherche = in_array($_GET['mode'] ?? 'all', ['all', 'id', 'numero'], true) ? ($_GET['mode'] ?? 'all') : 'all';
 $erreurRecherche = null;
 $succesRecherche = null;
 $etudiant = null;
@@ -21,7 +22,16 @@ $notesEtudiant = [];
 $notesParModule = [];
 
 if ($termeRecherche !== '') {
-    if (ctype_digit($termeRecherche)) {
+    if ($modeRecherche === 'id') {
+        $idEtudiant = filter_var($termeRecherche, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $stmt = $pdo->prepare('SELECT * FROM personne WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $idEtudiant !== false ? $idEtudiant : 0]);
+        $etudiant = $stmt->fetch() ?: null;
+    } elseif ($modeRecherche === 'numero') {
+        $stmt = $pdo->prepare('SELECT * FROM personne WHERE numero = :numero ORDER BY id LIMIT 1');
+        $stmt->execute([':numero' => $termeRecherche]);
+        $etudiant = $stmt->fetch() ?: null;
+    } elseif (ctype_digit($termeRecherche)) {
         // Recherche par ID ou par Numéro étudiant
         $stmt = $pdo->prepare('SELECT * FROM personne WHERE id = :id OR numero = :num LIMIT 1');
         $stmt->execute([
@@ -145,8 +155,13 @@ require __DIR__ . '/../includes/header.php';
 
 <!-- Formulaire de recherche d'un étudiant -->
 <form method="get" action="bulletin.php" class="form-recherche" style="margin-bottom: 20px;">
-    <label for="recherche-etudiant"><strong>Rechercher un étudiant :</strong></label>
-    <input type="text" name="recherche" id="recherche-etudiant" value="<?= h($termeRecherche) ?>" placeholder="ID ou Numéro d'étudiant..." style="width: 240px;" required>
+    <label for="mode-recherche"><strong>Rechercher un étudiant par :</strong></label>
+    <select name="mode" id="mode-recherche">
+        <option value="all" <?= $modeRecherche === 'all' ? 'selected' : '' ?>>Tous les champs</option>
+        <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+        <option value="numero" <?= $modeRecherche === 'numero' ? 'selected' : '' ?>>Numéro</option>
+    </select>
+    <input type="text" name="recherche" id="recherche-etudiant" value="<?= h($termeRecherche) ?>" placeholder="ID, numéro ou nom..." style="width: 240px;" required>
     <button type="submit">Rechercher</button>
     <?php if ($termeRecherche !== ''): ?>
         <a href="bulletin.php" style="margin-left: 12px; font-size: 13.5px;">Réinitialiser</a>
@@ -217,6 +232,11 @@ require __DIR__ . '/../includes/header.php';
             <td>Nationalité de la note :</td>
             <td>
                 <div class="nationalite-picker">
+                    <select id="nationalite-recherche-mode" aria-label="Rechercher une nationalité par">
+                        <option value="all">Tous les champs</option>
+                        <option value="code">Code</option>
+                        <option value="libelle">Libellé</option>
+                    </select>
                     <input type="search" id="nationalite-recherche" placeholder="Rechercher une nationalité ou un drapeau..." aria-label="Rechercher une nationalité">
                     <div class="nationalite-selection">
                         <select name="nationalite_code" id="nationalite_code" required>

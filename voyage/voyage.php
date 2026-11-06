@@ -15,6 +15,7 @@ $modelesVoiture = charger_options_colonne($pdo, 'modele_voiture', 'libelle', 'li
 $filieres = charger_options_colonne($pdo, 'filiere', 'nom', 'id', $FILIERES);
 
 // Recherche par ID : recherche l'étudiant ou le voyage existant
+$modeRecherche = ($_GET['mode'] ?? 'id') === 'numero' ? 'numero' : 'id';
 $idRecherche = $_GET['id'] ?? '';
 $erreurRecherche = null;
 $etudiant = null;
@@ -28,42 +29,59 @@ if ($idRecherche !== '') {
         $idRecherche = '';
     } else {
         $idRecherche = trim((string)$idRecherche);
-        $idRechercheValide = filter_var($idRecherche, FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1, 'max_range' => 2147483647],
-        ]);
-        if ($idRechercheValide === false) {
-            $erreurRecherche = "Identifiant invalide.";
-            $idRechercheValide = null;
-        } else {
-            // 1. Rechercher d'abord dans la table voyager
-            $stmt = $pdo->prepare('SELECT v.*, n.libelle AS nationalite_libelle 
-                                   FROM voyager v 
-                                   LEFT JOIN nationalite n ON n.code = v.nationalite_code 
-                                   WHERE v.id = :id OR v.etudiant_id = :id');
-            $stmt->execute([':id' => $idRechercheValide]);
+        if ($modeRecherche === 'numero') {
+            $stmt = $pdo->prepare('SELECT v.*, n.libelle AS nationalite_libelle
+                                   FROM voyager v
+                                   LEFT JOIN nationalite n ON n.code = v.nationalite_code
+                                   WHERE v.numero = :numero
+                                   ORDER BY v.id DESC LIMIT 1');
+            $stmt->execute([':numero' => $idRecherche]);
             $voyage = $stmt->fetch() ?: null;
 
-            // 2. Rechercher aussi dans la table personne (étudiant)
-            $stmt = $pdo->prepare('SELECT p.*, n.libelle AS nationalite_libelle 
-                                   FROM personne p 
-                                   LEFT JOIN nationalite n ON n.code = p.nationalite_code 
-                                   WHERE p.id = :id');
-            $stmt->execute([':id' => $idRechercheValide]);
+            $stmt = $pdo->prepare('SELECT p.*, n.libelle AS nationalite_libelle
+                                   FROM personne p
+                                   LEFT JOIN nationalite n ON n.code = p.nationalite_code
+                                   WHERE p.numero = :numero
+                                   ORDER BY p.id LIMIT 1');
+            $stmt->execute([':numero' => $idRecherche]);
             $etudiant = $stmt->fetch() ?: null;
+        } else {
+            $idRechercheValide = filter_var($idRecherche, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 1, 'max_range' => 2147483647],
+            ]);
+            if ($idRechercheValide === false) {
+                $erreurRecherche = "Identifiant invalide.";
+                $idRechercheValide = null;
+            } else {
+                $stmt = $pdo->prepare('SELECT v.*, n.libelle AS nationalite_libelle
+                                       FROM voyager v
+                                       LEFT JOIN nationalite n ON n.code = v.nationalite_code
+                                       WHERE v.id = :id OR v.etudiant_id = :id
+                                       ORDER BY v.id DESC LIMIT 1');
+                $stmt->execute([':id' => $idRechercheValide]);
+                $voyage = $stmt->fetch() ?: null;
 
-            if ($voyage) {
-                $isVoyageExistant = true;
+                $stmt = $pdo->prepare('SELECT p.*, n.libelle AS nationalite_libelle
+                                       FROM personne p
+                                       LEFT JOIN nationalite n ON n.code = p.nationalite_code
+                                       WHERE p.id = :id');
+                $stmt->execute([':id' => $idRechercheValide]);
+                $etudiant = $stmt->fetch() ?: null;
             }
         }
     }
 }
 
+if ($voyage) {
+    $isVoyageExistant = true;
+}
+
 // Déterminer la source des données : voyage existant en priorité, sinon données de l'étudiant
 $donnees = $voyage ?: $etudiant ?: [];
-$voyageId = $voyage['id'] ?? ($idRechercheValide ?: null);
-$etudiantId = $voyage['etudiant_id'] ?? ($etudiant['id'] ?? ($idRechercheValide ?: null));
+$voyageId = $voyage['id'] ?? ($modeRecherche === 'id' ? $idRechercheValide : null);
+$etudiantId = $voyage['etudiant_id'] ?? ($etudiant['id'] ?? ($modeRecherche === 'id' ? $idRechercheValide : null));
 
-if ($voyage && !empty($voyage['etudiant_id']) && !$etudiant) {
+if ($voyage && !empty($voyage['etudiant_id'])) {
     $stmt = $pdo->prepare('SELECT p.*, n.libelle AS nationalite_libelle 
                            FROM personne p 
                            LEFT JOIN nationalite n ON n.code = p.nationalite_code 
@@ -93,11 +111,15 @@ $titre = 'Formulaire Voyage';
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<!-- 1. Formulaire de recherche par ID -->
+<!-- 1. Formulaire de recherche -->
 <form method="get" action="voyage.php" class="form-recherche" style="margin-bottom: 20px;">
-    <label for="recherche-id"><strong>Rechercher un étudiant / voyage par ID :</strong></label>
-    <input type="text" name="id" id="recherche-id" inputmode="numeric" pattern="[1-9][0-9]*"
-           value="<?= h($idRecherche) ?>" placeholder="Ex: 1" required style="max-width: 150px;">
+    <label for="mode-recherche"><strong>Rechercher un étudiant / voyage par :</strong></label>
+    <select name="mode" id="mode-recherche">
+        <option value="id" <?= $modeRecherche === 'id' ? 'selected' : '' ?>>ID</option>
+        <option value="numero" <?= $modeRecherche === 'numero' ? 'selected' : '' ?>>Numéro</option>
+    </select>
+    <input type="text" name="id" id="recherche-id" inputmode="<?= $modeRecherche === 'id' ? 'numeric' : 'text' ?>"
+           value="<?= h($idRecherche) ?>" placeholder="<?= $modeRecherche === 'id' ? 'Ex: 1' : 'Ex: 15' ?>" required style="max-width: 150px;">
     <button type="submit">Rechercher</button>
     <?php if ($idRecherche !== ''): ?>
         <a href="voyage.php" style="margin-left: 10px;">Réinitialiser</a>
@@ -106,13 +128,13 @@ require __DIR__ . '/../includes/header.php';
 
 <?php if ($erreurRecherche): ?>
     <p class="erreur"><?= h($erreurRecherche) ?></p>
-<?php elseif ($idRechercheValide !== null && ($voyage || $etudiant)): ?>
+<?php elseif ($idRecherche !== '' && ($voyage || $etudiant)): ?>
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin: 12px 0;">
         <p class="ok" style="margin: 0;">
             <?php if ($isVoyageExistant): ?>
-                Voyage trouvé pour l’ID <?= h($idRechercheValide) ?> (Étudiant : <?= h($donnees['nom_prenom'] ?? '') ?>).
+                Voyage trouvé pour <?= $modeRecherche === 'id' ? 'l’ID' : 'le numéro' ?> <?= h($idRecherche) ?> (Étudiant : <?= h($donnees['nom_prenom'] ?? '') ?>).
             <?php else: ?>
-                Étudiant trouvé dans la base (ID <?= h($idRechercheValide) ?> : <?= h($donnees['nom_prenom'] ?? '') ?>). Renseignez les informations de voyage puis enregistrez.
+                Étudiant trouvé dans la base (<?= $modeRecherche === 'id' ? 'ID' : 'N°' ?> <?= h($idRecherche) ?> : <?= h($donnees['nom_prenom'] ?? '') ?>). Renseignez les informations de voyage puis enregistrez.
             <?php endif; ?>
         </p>
         <div style="display: flex; gap: 8px;">
@@ -219,17 +241,22 @@ require __DIR__ . '/../includes/header.php';
             </div>
         </div>
     </div>
-<?php elseif ($idRechercheValide !== null): ?>
-    <p>Aucun étudiant ni voyage trouvé pour l’ID <?= h($idRechercheValide) ?>. Remplissez les champs ci-dessous pour créer ce voyage avec cet ID.</p>
+<?php elseif ($idRecherche !== '' && !$erreurRecherche): ?>
+    <p>Aucun étudiant ni voyage trouvé pour <?= $modeRecherche === 'id' ? 'l’ID' : 'le numéro' ?> <?= h($idRecherche) ?>. Remplissez les champs ci-dessous pour créer ce voyage<?= $modeRecherche === 'id' ? ' avec cet ID' : '' ?>.</p>
 <?php endif; ?>
 
 <!-- 2. Formulaire Voyage -->
 <form id="form-voyage" method="post" action="enregistrer.php" enctype="multipart/form-data">
-    <?php if ($idRechercheValide !== null): ?>
+    <?php if ($isVoyageExistant): ?>
+        <input type="hidden" name="id" value="<?= h($voyageId) ?>">
+        <?php if ($etudiantId !== null): ?>
+            <input type="hidden" name="etudiant_id" value="<?= h($etudiantId) ?>">
+        <?php endif; ?>
+    <?php elseif ($modeRecherche === 'id' && $idRechercheValide !== null): ?>
         <input type="hidden" name="id" value="<?= h($idRechercheValide) ?>">
         <input type="hidden" name="etudiant_id" value="<?= h($etudiantId) ?>">
-    <?php elseif ($voyageId !== null): ?>
-        <input type="hidden" name="id" value="<?= h($voyageId) ?>">
+    <?php elseif ($etudiantId !== null): ?>
+        <input type="hidden" name="etudiant_id" value="<?= h($etudiantId) ?>">
     <?php endif; ?>
 
     <p style="margin: 12px 0; color: var(--text-muted); font-size: 13.5px;">
