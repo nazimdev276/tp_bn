@@ -31,47 +31,24 @@ $messageSucces = '';
 
 if (!$erreurs) {
     try {
-        if ($action === 'modifier') {
-            if ($idValide === null) {
-                $erreurs[] = "Veuillez préciser l'identifiant (ID) de la filière à modifier.";
-            } else {
-                $stmt = $pdo->prepare('UPDATE filiere SET nom = :nom WHERE id = :id');
-                $stmt->execute([':nom' => $nom, ':id' => $idValide]);
-                if ($stmt->rowCount() > 0) {
-                    $succes = true;
-                    $messageSucces = "Filière ID {$idValide} modifiée avec succès.";
-                } else {
-                    $check = $pdo->prepare('SELECT COUNT(*) FROM filiere WHERE id = :id');
-                    $check->execute([':id' => $idValide]);
-                    if ($check->fetchColumn() > 0) {
-                        $succes = true;
-                        $messageSucces = "Aucune modification apportée (valeur identique).";
-                    } else {
-                        $erreurs[] = "Aucune filière trouvée avec l'ID {$idValide}.";
-                    }
-                }
-            }
-        } else {
-            // Ajouter / Enregistrer
-            if ($idValide !== null) {
-                $check = $pdo->prepare('SELECT COUNT(*) FROM filiere WHERE id = :id');
-                $check->execute([':id' => $idValide]);
-                if ($check->fetchColumn() > 0) {
-                    $stmt = $pdo->prepare('UPDATE filiere SET nom = :nom WHERE id = :id');
-                    $stmt->execute([':nom' => $nom, ':id' => $idValide]);
-                    $messageSucces = "Filière ID {$idValide} mise à jour avec succès.";
-                } else {
-                    $stmt = $pdo->prepare('INSERT INTO filiere (id, nom) VALUES (:id, :nom)');
-                    $stmt->execute([':id' => $idValide, ':nom' => $nom]);
-                    $messageSucces = "Filière ajoutée avec succès (ID {$idValide}).";
-                }
-            } else {
-                $stmt = $pdo->prepare('INSERT INTO filiere (nom) VALUES (:nom)');
-                $stmt->execute([':nom' => $nom]);
-                $nouvelId = (int)$pdo->lastInsertId();
-                $messageSucces = "Filière ajoutée avec succès (ID {$nouvelId}).";
-            }
+        $resultat = enregistrer_avec_id($pdo, 'filiere', ['nom' => $nom], $idValide, $action === 'modifier');
+
+        if ($resultat['status'] === 'missing_id') {
+            $erreurs[] = "Veuillez préciser l'identifiant (ID) de la filière à modifier.";
+        } elseif ($resultat['status'] === 'not_found') {
+            $erreurs[] = "Aucune filière trouvée avec l'ID {$idValide}.";
+        } elseif ($resultat['status'] === 'unchanged') {
             $succes = true;
+            $messageSucces = "Aucune modification apportée (valeur identique).";
+        } else {
+            $succes = true;
+            if ($resultat['status'] === 'updated') {
+                $messageSucces = $action === 'modifier'
+                    ? "Filière ID {$idValide} modifiée avec succès."
+                    : "Filière ID {$idValide} mise à jour avec succès.";
+            } else {
+                $messageSucces = "Filière ajoutée avec succès (ID {$resultat['id']}).";
+            }
         }
     } catch (PDOException $e) {
         if ($e->getCode() === '23000') {

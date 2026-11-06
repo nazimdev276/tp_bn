@@ -31,7 +31,7 @@ if (!$enseignant && !empty($tousEnseignants)) {
 // Filière et modules de l'enseignant sélectionné
 $filiere = $filiereParam !== '' ? $filiereParam : ($enseignant['filiere'] ?? '');
 $modulesList = !empty($enseignant['modules'])
-    ? array_filter(array_map('trim', explode(',', $enseignant['modules'])))
+    ? lire_liste_texte($enseignant['modules'])
     : [];
 
 // Recherche des informations complètes des modules de cet enseignant (avec coefficient direct depuis la table module)

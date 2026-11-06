@@ -38,17 +38,9 @@ $applications    = post_liste('applications', $APPLICATIONS);
 $activites       = post_liste('activites', $ACTIVITES);
 $modules         = post_liste('modules', $MODULES);
 
-$stmt = $pdo->prepare('SELECT libelle FROM moyen_transport');
-$stmt->execute();
-$transports = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-$stmt = $pdo->prepare('SELECT libelle FROM sport');
-$stmt->execute();
-$sports = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-$stmt = $pdo->prepare('SELECT libelle FROM modele_voiture');
-$stmt->execute();
-$modelesVoiture = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: $MODELES_VOITURE;
+$transports = charger_options_colonne($pdo, 'moyen_transport', 'libelle', 'libelle');
+$sports = charger_options_colonne($pdo, 'sport', 'libelle', 'libelle');
+$modelesVoiture = charger_options_colonne($pdo, 'modele_voiture', 'libelle', 'libelle', $MODELES_VOITURE);
 $modelesVoituresPost = post_liste('modele_voiture', $modelesVoiture);
 
 $idVoyage        = null;
@@ -149,17 +141,17 @@ if (!$erreurs) {
             ':cp'              => $codePostal,
             ':localite'        => $localite,
             ':pays'            => $pays,
-            ':plateformes'     => implode(', ', $plateformes),
-            ':applications'    => implode(', ', $applications),
+            ':plateformes'     => ecrire_liste_texte($plateformes),
+            ':applications'    => ecrire_liste_texte($applications),
             ':transport'       => $transport,
             ':sport'           => $sport,
-            ':activites'       => implode(', ', $activites),
-            ':modules'         => implode(', ', $modules),
+            ':activites'       => ecrire_liste_texte($activites),
+            ':modules'         => ecrire_liste_texte($modules),
             ':groupe_sanguin'  => $groupeSanguin,
-            ':modele_voiture'  => implode(', ', $modelesVoituresPost),
+            ':modele_voiture'  => ecrire_liste_texte($modelesVoituresPost),
             ':nat'             => $natCode,
             ':photo'           => $photo,
-            ':travel_methodes' => implode(', ', $travelMethodes),
+            ':travel_methodes' => ecrire_liste_texte($travelMethodes),
             ':travel_with'     => $travelWith,
             ':description'     => $description !== '' ? $description : null,
             ':etudiant_id'     => $etudiantId,

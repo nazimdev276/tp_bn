@@ -70,7 +70,7 @@ require __DIR__ . '/../includes/header.php';
         <?php foreach ($enseignants as $e): ?>
             <?php
                 $modulesList = !empty($e['modules'])
-                    ? array_filter(array_map('trim', explode(',', $e['modules'])))
+                    ? lire_liste_texte($e['modules'])
                     : [];
             ?>
             <tr>

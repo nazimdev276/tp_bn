@@ -58,14 +58,14 @@ if ($ligne) {
     <tr><td>Adresse</td><td><?= h($_POST['adresse'] ?? '') ?></td></tr>
     <tr><td>No postal / Localité</td><td><?= h($_POST['code_postal'] ?? '') ?> <?= h($_POST['localite'] ?? '') ?></td></tr>
     <tr><td>Pays</td><td><?= h($_POST['pays'] ?? '') ?></td></tr>
-    <tr><td>Plateforme(s)</td><td><?= h(implode(', ', $plateformes)) ?></td></tr>
-    <tr><td>Application(s)</td><td><?= h(implode(', ', $applications)) ?></td></tr>
+    <tr><td>Plateforme(s)</td><td><?= h(ecrire_liste_texte($plateformes)) ?></td></tr>
+    <tr><td>Application(s)</td><td><?= h(ecrire_liste_texte($applications)) ?></td></tr>
     <tr><td>Moyen de transport</td><td><?= h($transport) ?></td></tr>
     <tr><td>Sport</td><td><?= h($sport) ?></td></tr>
     <tr><td>Modèle de voiture</td><td><?= h($modeleVoiture) ?></td></tr>
     <tr><td>Groupe sanguin</td><td><?= h($groupeSanguin) ?></td></tr>
-    <tr><td>Module(s)</td><td><?= h(implode(', ', $modules)) ?></td></tr>
-    <tr><td>Activité(s)</td><td><?= h(implode(', ', $activites)) ?></td></tr>
+    <tr><td>Module(s)</td><td><?= h(ecrire_liste_texte($modules)) ?></td></tr>
+    <tr><td>Activité(s)</td><td><?= h(ecrire_liste_texte($activites)) ?></td></tr>
     <tr><td>Nationalité</td><td><?= h($libelleNat) ?> (<?= h($_POST['nationalite'] ?? '') ?>)</td></tr>
 </table>
 <p><a href="formulaire.php">Retour au formulaire</a></p>

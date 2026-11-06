@@ -1,6 +1,11 @@
 <?php
 // includes/fonctions.php : petites fonctions utilitaires
 
+require_once __DIR__ . '/operations/enregistrer_avec_id.php';
+require_once __DIR__ . '/operations/lire_liste_texte.php';
+require_once __DIR__ . '/operations/charger_options_colonne.php';
+require_once __DIR__ . '/operations/supprimer_par_id.php';
+
 // Échappe le texte avant de l'afficher en HTML (protège contre XSS)
 function h($texte): string
 {

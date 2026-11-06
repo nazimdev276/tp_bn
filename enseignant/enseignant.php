@@ -45,7 +45,7 @@ $gradeCourant         = $enseignant['grade'] ?? 'MAA';
 $specialiteCourante   = $enseignant['specialite'] ?? '';
 $filiereCourante      = $enseignant['filiere'] ?? '';
 $modulesCourants      = !empty($enseignant['modules'])
-    ? array_filter(array_map('trim', explode(',', $enseignant['modules'])))
+    ? lire_liste_texte($enseignant['modules'])
     : [];
 
 $base = '../';

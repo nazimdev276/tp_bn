@@ -9,14 +9,13 @@ $id = $_POST['id'] ?? ($_GET['id'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $erreur = "La suppression doit être effectuée via le formulaire.";
-} elseif ((!is_string($id) && !is_int($id)) || filter_var((string)$id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
-    $erreur = "Identifiant invalide : l'enseignant n'a pas été supprimé.";
 } else {
     try {
-        $stmt = $pdo->prepare('DELETE FROM enseignant WHERE id = :id');
-        $stmt->execute([':id' => (int)$id]);
-        if ($stmt->rowCount() === 1) {
+        $resultat = supprimer_par_id($pdo, 'enseignant', $id);
+        if ($resultat['status'] === 'deleted') {
             $supprime = true;
+        } elseif ($resultat['status'] === 'invalid') {
+            $erreur = "Identifiant invalide : l'enseignant n'a pas été supprimé.";
         } else {
             $erreur = "Aucun enseignant trouvé avec cet identifiant.";
         }

@@ -41,12 +41,7 @@ if ($volumeHoraire === false) {
 }
 
 // Vérification filière
-$stmt = $pdo->prepare('SELECT nom FROM filiere ORDER BY id');
-$stmt->execute();
-$filieresExistantes = $stmt->fetchAll(PDO::FETCH_COLUMN);
-if (!$filieresExistantes) {
-    $filieresExistantes = $FILIERES;
-}
+$filieresExistantes = charger_options_colonne($pdo, 'filiere', 'nom', 'id', $FILIERES);
 if ($filiere === '' || !in_array($filiere, $filieresExistantes, true)) {
     $erreurs[] = "Veuillez sélectionner une filière valide.";
 }
@@ -56,94 +51,30 @@ $messageSucces = '';
 
 if (!$erreurs) {
     try {
-        if ($action === 'modifier') {
-            if ($idValide === null) {
-                $erreurs[] = "Veuillez préciser l'identifiant (ID) du module à modifier.";
-            } else {
-                $stmt = $pdo->prepare(
-                    'UPDATE module
-                     SET code_module = :code_module, designation = :designation,
-                         coefficient = :coefficient, volume_horaire = :volume_horaire, filiere = :filiere
-                     WHERE id = :id'
-                );
-                $stmt->execute([
-                    ':code_module'    => $codeModule,
-                    ':designation'    => $designation,
-                    ':coefficient'    => $coefficient,
-                    ':volume_horaire' => $volumeHoraire,
-                    ':filiere'        => $filiere,
-                    ':id'             => $idValide,
-                ]);
-                if ($stmt->rowCount() > 0) {
-                    $succes = true;
-                    $messageSucces = "Module ID {$idValide} modifié avec succès.";
-                } else {
-                    $check = $pdo->prepare('SELECT COUNT(*) FROM module WHERE id = :id');
-                    $check->execute([':id' => $idValide]);
-                    if ($check->fetchColumn() > 0) {
-                        $succes = true;
-                        $messageSucces = "Aucune modification apportée (valeurs identiques).";
-                    } else {
-                        $erreurs[] = "Aucun module trouvé pour l'ID {$idValide}.";
-                    }
-                }
-            }
-        } else {
-            // Ajouter / Enregistrer
-            if ($idValide !== null) {
-                $check = $pdo->prepare('SELECT COUNT(*) FROM module WHERE id = :id');
-                $check->execute([':id' => $idValide]);
-                if ($check->fetchColumn() > 0) {
-                    $stmt = $pdo->prepare(
-                        'UPDATE module
-                         SET code_module = :code_module, designation = :designation,
-                             coefficient = :coefficient, volume_horaire = :volume_horaire, filiere = :filiere
-                         WHERE id = :id'
-                    );
-                    $stmt->execute([
-                        ':code_module'    => $codeModule,
-                        ':designation'    => $designation,
-                        ':coefficient'    => $coefficient,
-                        ':volume_horaire' => $volumeHoraire,
-                        ':filiere'        => $filiere,
-                        ':id'             => $idValide,
-                    ]);
-                    $messageSucces = "Module ID {$idValide} mis à jour avec succès.";
-                } else {
-                    $stmt = $pdo->prepare(
-                        'INSERT INTO module
-                         (id, code_module, designation, coefficient, volume_horaire, filiere)
-                         VALUES
-                         (:id, :code_module, :designation, :coefficient, :volume_horaire, :filiere)'
-                    );
-                    $stmt->execute([
-                        ':id'             => $idValide,
-                        ':code_module'    => $codeModule,
-                        ':designation'    => $designation,
-                        ':coefficient'    => $coefficient,
-                        ':volume_horaire' => $volumeHoraire,
-                        ':filiere'        => $filiere,
-                    ]);
-                    $messageSucces = "Module ajouté avec succès (ID {$idValide}).";
-                }
-            } else {
-                $stmt = $pdo->prepare(
-                    'INSERT INTO module
-                     (code_module, designation, coefficient, volume_horaire, filiere)
-                     VALUES
-                     (:code_module, :designation, :coefficient, :volume_horaire, :filiere)'
-                );
-                $stmt->execute([
-                    ':code_module'    => $codeModule,
-                    ':designation'    => $designation,
-                    ':coefficient'    => $coefficient,
-                    ':volume_horaire' => $volumeHoraire,
-                    ':filiere'        => $filiere,
-                ]);
-                $nouvelId = (int)$pdo->lastInsertId();
-                $messageSucces = "Module ajouté avec succès (ID {$nouvelId}).";
-            }
+        $resultat = enregistrer_avec_id($pdo, 'module', [
+            'code_module' => $codeModule,
+            'designation' => $designation,
+            'coefficient' => $coefficient,
+            'volume_horaire' => $volumeHoraire,
+            'filiere' => $filiere,
+        ], $idValide, $action === 'modifier');
+
+        if ($resultat['status'] === 'missing_id') {
+            $erreurs[] = "Veuillez préciser l'identifiant (ID) du module à modifier.";
+        } elseif ($resultat['status'] === 'not_found') {
+            $erreurs[] = "Aucun module trouvé pour l'ID {$idValide}.";
+        } elseif ($resultat['status'] === 'unchanged') {
             $succes = true;
+            $messageSucces = "Aucune modification apportée (valeurs identiques).";
+        } else {
+            $succes = true;
+            if ($resultat['status'] === 'updated') {
+                $messageSucces = $action === 'modifier'
+                    ? "Module ID {$idValide} modifié avec succès."
+                    : "Module ID {$idValide} mis à jour avec succès.";
+            } else {
+                $messageSucces = "Module ajouté avec succès (ID {$resultat['id']}).";
+            }
         }
     } catch (PDOException $e) {
         $erreurs[] = "Erreur de base de données : " . $e->getMessage();

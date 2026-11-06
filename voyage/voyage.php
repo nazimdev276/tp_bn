@@ -9,27 +9,10 @@ $stmt = $pdo->prepare('SELECT code, libelle FROM nationalite ORDER BY libelle');
 $stmt->execute();
 $nationalites = $stmt->fetchAll();
 
-$stmt = $pdo->prepare('SELECT libelle FROM moyen_transport ORDER BY libelle');
-$stmt->execute();
-$transports = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-$stmt = $pdo->prepare('SELECT libelle FROM sport ORDER BY libelle');
-$stmt->execute();
-$sports = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-$stmt = $pdo->prepare('SELECT libelle FROM modele_voiture ORDER BY libelle');
-$stmt->execute();
-$modelesVoiture = $stmt->fetchAll(PDO::FETCH_COLUMN);
-if (!$modelesVoiture) {
-    $modelesVoiture = $MODELES_VOITURE;
-}
-
-$stmt = $pdo->prepare('SELECT nom FROM filiere ORDER BY id');
-$stmt->execute();
-$filieres = $stmt->fetchAll(PDO::FETCH_COLUMN);
-if (!$filieres) {
-    $filieres = $FILIERES;
-}
+$transports = charger_options_colonne($pdo, 'moyen_transport', 'libelle', 'libelle');
+$sports = charger_options_colonne($pdo, 'sport', 'libelle', 'libelle');
+$modelesVoiture = charger_options_colonne($pdo, 'modele_voiture', 'libelle', 'libelle', $MODELES_VOITURE);
+$filieres = charger_options_colonne($pdo, 'filiere', 'nom', 'id', $FILIERES);
 
 // Recherche par ID : recherche l'étudiant ou le voyage existant
 $idRecherche = $_GET['id'] ?? '';
@@ -94,16 +77,16 @@ if (empty($donnees['photo']) && !empty($etudiant['photo'])) {
 }
 
 // Les 3 fonctionnalités Voyage
-$methodesSelectionnees = array_filter(array_map('trim', explode(',', $voyage['travel_methodes'] ?? '')));
+$methodesSelectionnees = lire_liste_texte($voyage['travel_methodes'] ?? null);
 $travelWithSelectionne = $voyage['travel_with'] ?? '';
 $descriptionValue = $voyage['description'] ?? '';
 
 // Les champs étudiants existants
-$plateformesSelectionnees = array_filter(array_map('trim', explode(',', $donnees['plateformes'] ?? '')));
-$applicationsSelectionnees = array_filter(array_map('trim', explode(',', $donnees['applications'] ?? '')));
-$activitesSelectionnees = array_filter(array_map('trim', explode(',', $donnees['activites'] ?? '')));
-$modulesSelectionnes = array_filter(array_map('trim', explode(',', $donnees['modules'] ?? '')));
-$modelesVoitureSelectionnes = array_filter(array_map('trim', explode(',', $donnees['modele_voiture'] ?? '')));
+$plateformesSelectionnees = lire_liste_texte($donnees['plateformes'] ?? null);
+$applicationsSelectionnees = lire_liste_texte($donnees['applications'] ?? null);
+$activitesSelectionnees = lire_liste_texte($donnees['activites'] ?? null);
+$modulesSelectionnes = lire_liste_texte($donnees['modules'] ?? null);
+$modelesVoitureSelectionnes = lire_liste_texte($donnees['modele_voiture'] ?? null);
 
 $base  = '../';
 $titre = 'Formulaire Voyage';

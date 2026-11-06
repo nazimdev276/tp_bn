@@ -9,27 +9,10 @@ $stmt = $pdo->prepare('SELECT code, libelle FROM nationalite ORDER BY libelle');
 $stmt->execute();
 $nationalites = $stmt->fetchAll();
 
-$stmt = $pdo->prepare('SELECT libelle FROM moyen_transport ORDER BY libelle');
-$stmt->execute();
-$transports = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-$stmt = $pdo->prepare('SELECT libelle FROM sport ORDER BY libelle');
-$stmt->execute();
-$sports = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-$stmt = $pdo->prepare('SELECT libelle FROM modele_voiture ORDER BY libelle');
-$stmt->execute();
-$modelesVoiture = $stmt->fetchAll(PDO::FETCH_COLUMN);
-if (!$modelesVoiture) {
-    $modelesVoiture = $MODELES_VOITURE;
-}
-
-$stmt = $pdo->prepare('SELECT nom FROM filiere ORDER BY id');
-$stmt->execute();
-$filieres = $stmt->fetchAll(PDO::FETCH_COLUMN);
-if (!$filieres) {
-    $filieres = $FILIERES;
-}
+$transports = charger_options_colonne($pdo, 'moyen_transport', 'libelle', 'libelle');
+$sports = charger_options_colonne($pdo, 'sport', 'libelle', 'libelle');
+$modelesVoiture = charger_options_colonne($pdo, 'modele_voiture', 'libelle', 'libelle', $MODELES_VOITURE);
+$filieres = charger_options_colonne($pdo, 'filiere', 'nom', 'id', $FILIERES);
 
 $idRecherche = $_GET['id'] ?? '';
 $erreurRecherche = null;
@@ -55,11 +38,11 @@ if ($idRecherche !== '') {
     }
 }
 
-$plateformesSelectionnees = array_filter(array_map('trim', explode(',', $personne['plateformes'] ?? '')));
-$applicationsSelectionnees = array_filter(array_map('trim', explode(',', $personne['applications'] ?? '')));
-$activitesSelectionnees = array_filter(array_map('trim', explode(',', $personne['activites'] ?? '')));
-$modulesSelectionnes = array_filter(array_map('trim', explode(',', $personne['modules'] ?? '')));
-$modelesVoitureSelectionnes = array_filter(array_map('trim', explode(',', $personne['modele_voiture'] ?? '')));
+$plateformesSelectionnees = lire_liste_texte($personne['plateformes'] ?? null);
+$applicationsSelectionnees = lire_liste_texte($personne['applications'] ?? null);
+$activitesSelectionnees = lire_liste_texte($personne['activites'] ?? null);
+$modulesSelectionnes = lire_liste_texte($personne['modules'] ?? null);
+$modelesVoitureSelectionnes = lire_liste_texte($personne['modele_voiture'] ?? null);
 
 $base  = '../';
 $titre = 'Formulaire Personne';

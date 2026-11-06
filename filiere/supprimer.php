@@ -9,14 +9,13 @@ $id = $_POST['id'] ?? ($_GET['id'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $erreur = "La suppression doit être demandée via le formulaire.";
-} elseif ((!is_string($id) && !is_int($id)) || filter_var((string)$id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
-    $erreur = "Identifiant invalide : la filière n'a pas été supprimée.";
 } else {
     try {
-        $stmt = $pdo->prepare('DELETE FROM filiere WHERE id = :id');
-        $stmt->execute([':id' => (int)$id]);
-        if ($stmt->rowCount() === 1) {
+        $resultat = supprimer_par_id($pdo, 'filiere', $id);
+        if ($resultat['status'] === 'deleted') {
             $supprime = true;
+        } elseif ($resultat['status'] === 'invalid') {
+            $erreur = "Identifiant invalide : la filière n'a pas été supprimée.";
         } else {
             $erreur = "Aucune filière trouvée pour cet identifiant.";
         }

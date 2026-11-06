@@ -9,16 +9,13 @@ $id = $_POST['id'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $erreur = "La suppression doit être effectuée via une requête POST valide.";
-} elseif ((!is_string($id) && !is_int($id)) || filter_var((string)$id, FILTER_VALIDATE_INT, [
-    'options' => ['min_range' => 1, 'max_range' => 2147483647],
-]) === false) {
-    $erreur = "Identifiant invalide : le voyage n'a pas été supprimé.";
 } else {
     try {
-        $stmt = $pdo->prepare('DELETE FROM voyager WHERE id = :id');
-        $stmt->execute([':id' => (int)$id]);
-        if ($stmt->rowCount() === 1) {
+        $resultat = supprimer_par_id($pdo, 'voyager', $id);
+        if ($resultat['status'] === 'deleted') {
             $supprime = true;
+        } elseif ($resultat['status'] === 'invalid') {
+            $erreur = "Identifiant invalide : le voyage n'a pas été supprimé.";
         } else {
             $erreur = "Aucun voyage trouvé pour cet identifiant dans la table Voyager.";
         }

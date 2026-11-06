@@ -24,7 +24,7 @@ $applications  = post_liste('applications', $APPLICATIONS);
 $activites     = post_liste('activites', $ACTIVITES);
 $modules       = post_liste('modules', $MODULES);
 $groupeSanguin = is_string($_POST['groupe_sanguin'] ?? null) ? trim($_POST['groupe_sanguin']) : '';
-$modeleVoiture = is_array($_POST['modele_voiture'] ?? null) ? implode(', ', $_POST['modele_voiture']) : (is_string($_POST['modele_voiture'] ?? null) ? trim($_POST['modele_voiture']) : '');
+$modeleVoiture = is_array($_POST['modele_voiture'] ?? null) ? ecrire_liste_texte($_POST['modele_voiture']) : (is_string($_POST['modele_voiture'] ?? null) ? trim($_POST['modele_voiture']) : '');
 
 $transport = $_POST['transport'] ?? '';
 $sport     = $_POST['sport'] ?? '';
@@ -58,7 +58,7 @@ if (!empty($_POST['nationalite'])) {
     <tr><th colspan="2" style="background: #6b21a8; color: white; text-align: left;">Les 3 Fonctionnalités Spécifiques de Voyage</th></tr>
     <tr style="background: #faf5ff;">
         <td><strong>Travel methodes (Méthodes de voyage)</strong></td>
-        <td><strong><?= h(implode(', ', $travelMethodes) ?: '—') ?></strong></td>
+        <td><strong><?= h(ecrire_liste_texte($travelMethodes) ?: '—') ?></strong></td>
     </tr>
     <tr style="background: #faf5ff;">
         <td><strong>Travel with (Accompagnement)</strong></td>
@@ -76,10 +76,10 @@ if (!empty($_POST['nationalite'])) {
     <tr><td>Sport</td><td><?= h($sport ?: '—') ?></td></tr>
     <tr><td>Modèle de voiture</td><td><?= h($modeleVoiture ?: '—') ?></td></tr>
     <tr><td>Groupe sanguin</td><td><?= h($groupeSanguin ?: '—') ?></td></tr>
-    <tr><td>Plateforme(s)</td><td><?= h(implode(', ', $plateformes) ?: '—') ?></td></tr>
-    <tr><td>Application(s)</td><td><?= h(implode(', ', $applications) ?: '—') ?></td></tr>
-    <tr><td>Module(s)</td><td><?= h(implode(', ', $modules) ?: '—') ?></td></tr>
-    <tr><td>Activité(s)</td><td><?= h(implode(', ', $activites) ?: '—') ?></td></tr>
+    <tr><td>Plateforme(s)</td><td><?= h(ecrire_liste_texte($plateformes) ?: '—') ?></td></tr>
+    <tr><td>Application(s)</td><td><?= h(ecrire_liste_texte($applications) ?: '—') ?></td></tr>
+    <tr><td>Module(s)</td><td><?= h(ecrire_liste_texte($modules) ?: '—') ?></td></tr>
+    <tr><td>Activité(s)</td><td><?= h(ecrire_liste_texte($activites) ?: '—') ?></td></tr>
 </table>
 
 <p style="margin-top: 16px;">

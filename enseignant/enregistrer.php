@@ -32,9 +32,9 @@ if (is_array($modulesPost)) {
         }
     }
 } elseif (is_string($modulesPost) && trim($modulesPost) !== '') {
-    $modulesArray = array_filter(array_map('trim', explode(',', $modulesPost)));
+    $modulesArray = lire_liste_texte($modulesPost);
 }
-$modulesStr = implode(', ', $modulesArray);
+$modulesStr = ecrire_liste_texte($modulesArray);
 
 $erreurs = [];
 $idValide = null;
@@ -82,120 +82,34 @@ $messageSucces = '';
 
 if (!$erreurs) {
     try {
-        if ($action === 'modifier') {
-            if ($idValide === null) {
-                $erreurs[] = "Veuillez préciser l'identifiant (ID) de l'enseignant à modifier.";
-            } else {
-                $stmt = $pdo->prepare(
-                    'UPDATE enseignant
-                     SET numero = :numero, civilite = :civilite, nom_prenom = :nom_prenom,
-                         adresse = :adresse, date_naissance = :date_naissance,
-                         lieu_naissance = :lieu_naissance, pays = :pays, grade = :grade,
-                         specialite = :specialite, filiere = :filiere, modules = :modules
-                     WHERE id = :id'
-                );
-                $stmt->execute([
-                    ':numero'         => $numero,
-                    ':civilite'       => $civilite,
-                    ':nom_prenom'     => $nomPrenom,
-                    ':adresse'        => $adresse,
-                    ':date_naissance' => $dateNaissance,
-                    ':lieu_naissance' => $lieuNaissance,
-                    ':pays'           => $pays,
-                    ':grade'          => $grade,
-                    ':specialite'     => $specialite,
-                    ':filiere'        => $filiere,
-                    ':modules'        => $modulesStr,
-                    ':id'             => $idValide,
-                ]);
-                if ($stmt->rowCount() > 0) {
-                    $succes = true;
-                    $messageSucces = "Enseignant ID {$idValide} modifié avec succès.";
-                } else {
-                    $check = $pdo->prepare('SELECT COUNT(*) FROM enseignant WHERE id = :id');
-                    $check->execute([':id' => $idValide]);
-                    if ($check->fetchColumn() > 0) {
-                        $succes = true;
-                        $messageSucces = "Aucune modification apportée (valeurs identiques).";
-                    } else {
-                        $erreurs[] = "Aucun enseignant trouvé pour l'ID {$idValide}.";
-                    }
-                }
-            }
+        $resultat = enregistrer_avec_id($pdo, 'enseignant', [
+            'numero' => $numero,
+            'civilite' => $civilite,
+            'nom_prenom' => $nomPrenom,
+            'adresse' => $adresse,
+            'date_naissance' => $dateNaissance,
+            'lieu_naissance' => $lieuNaissance,
+            'pays' => $pays,
+            'grade' => $grade,
+            'specialite' => $specialite,
+            'filiere' => $filiere,
+            'modules' => $modulesStr,
+        ], $idValide, $action === 'modifier');
+
+        if ($resultat['status'] === 'missing_id') {
+            $erreurs[] = "Veuillez préciser l'identifiant (ID) de l'enseignant à modifier.";
+        } elseif ($resultat['status'] === 'not_found') {
+            $erreurs[] = "Aucun enseignant trouvé pour l'ID {$idValide}.";
+        } elseif ($resultat['status'] === 'unchanged') {
+            $succes = true;
+            $messageSucces = "Aucune modification apportée (valeurs identiques).";
         } else {
-            // Ajouter / Enregistrer
-            if ($idValide !== null) {
-                $check = $pdo->prepare('SELECT COUNT(*) FROM enseignant WHERE id = :id');
-                $check->execute([':id' => $idValide]);
-                if ($check->fetchColumn() > 0) {
-                    $stmt = $pdo->prepare(
-                        'UPDATE enseignant
-                         SET numero = :numero, civilite = :civilite, nom_prenom = :nom_prenom,
-                             adresse = :adresse, date_naissance = :date_naissance,
-                             lieu_naissance = :lieu_naissance, pays = :pays, grade = :grade,
-                             specialite = :specialite, filiere = :filiere, modules = :modules
-                         WHERE id = :id'
-                    );
-                    $stmt->execute([
-                        ':numero'         => $numero,
-                        ':civilite'       => $civilite,
-                        ':nom_prenom'     => $nomPrenom,
-                        ':adresse'        => $adresse,
-                        ':date_naissance' => $dateNaissance,
-                        ':lieu_naissance' => $lieuNaissance,
-                        ':pays'           => $pays,
-                        ':grade'          => $grade,
-                        ':specialite'     => $specialite,
-                        ':filiere'        => $filiere,
-                        ':modules'        => $modulesStr,
-                        ':id'             => $idValide,
-                    ]);
-                    $messageSucces = "Enseignant ID {$idValide} mis à jour avec succès.";
-                } else {
-                    $stmt = $pdo->prepare(
-                        'INSERT INTO enseignant
-                         (id, numero, civilite, nom_prenom, adresse, date_naissance, lieu_naissance, pays, grade, specialite, filiere, modules)
-                         VALUES
-                         (:id, :numero, :civilite, :nom_prenom, :adresse, :date_naissance, :lieu_naissance, :pays, :grade, :specialite, :filiere, :modules)'
-                    );
-                    $stmt->execute([
-                        ':id'             => $idValide,
-                        ':numero'         => $numero,
-                        ':civilite'       => $civilite,
-                        ':nom_prenom'     => $nomPrenom,
-                        ':adresse'        => $adresse,
-                        ':date_naissance' => $dateNaissance,
-                        ':lieu_naissance' => $lieuNaissance,
-                        ':pays'           => $pays,
-                        ':grade'          => $grade,
-                        ':specialite'     => $specialite,
-                        ':filiere'        => $filiere,
-                        ':modules'        => $modulesStr,
-                    ]);
-                    $messageSucces = "Enseignant ajouté avec succès (ID {$idValide}).";
-                }
+            if ($resultat['status'] === 'updated') {
+                $messageSucces = $action === 'modifier'
+                    ? "Enseignant ID {$idValide} modifié avec succès."
+                    : "Enseignant ID {$idValide} mis à jour avec succès.";
             } else {
-                $stmt = $pdo->prepare(
-                    'INSERT INTO enseignant
-                     (numero, civilite, nom_prenom, adresse, date_naissance, lieu_naissance, pays, grade, specialite, filiere, modules)
-                     VALUES
-                     (:numero, :civilite, :nom_prenom, :adresse, :date_naissance, :lieu_naissance, :pays, :grade, :specialite, :filiere, :modules)'
-                );
-                $stmt->execute([
-                    ':numero'         => $numero,
-                    ':civilite'       => $civilite,
-                    ':nom_prenom'     => $nomPrenom,
-                    ':adresse'        => $adresse,
-                    ':date_naissance' => $dateNaissance,
-                    ':lieu_naissance' => $lieuNaissance,
-                    ':pays'           => $pays,
-                    ':grade'          => $grade,
-                    ':specialite'     => $specialite,
-                    ':filiere'        => $filiere,
-                    ':modules'        => $modulesStr,
-                ]);
-                $nouvelId = (int)$pdo->lastInsertId();
-                $messageSucces = "Enseignant ajouté avec succès (ID {$nouvelId}).";
+                $messageSucces = "Enseignant ajouté avec succès (ID {$resultat['id']}).";
             }
             $succes = true;
         }

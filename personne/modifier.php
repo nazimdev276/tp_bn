@@ -32,27 +32,10 @@ $stmt = $pdo->prepare('SELECT code, libelle FROM nationalite ORDER BY libelle');
 $stmt->execute();
 $nationalites = $stmt->fetchAll();
 
-$stmt = $pdo->prepare('SELECT libelle FROM moyen_transport ORDER BY libelle');
-$stmt->execute();
-$transports = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-$stmt = $pdo->prepare('SELECT libelle FROM sport ORDER BY libelle');
-$stmt->execute();
-$sports = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-$stmt = $pdo->prepare('SELECT libelle FROM modele_voiture ORDER BY libelle');
-$stmt->execute();
-$modelesVoiture = $stmt->fetchAll(PDO::FETCH_COLUMN);
-if (!$modelesVoiture) {
-    $modelesVoiture = $MODELES_VOITURE;
-}
-
-$stmt = $pdo->prepare('SELECT nom FROM filiere ORDER BY id');
-$stmt->execute();
-$filieres = $stmt->fetchAll(PDO::FETCH_COLUMN);
-if (!$filieres) {
-    $filieres = $FILIERES;
-}
+$transports = charger_options_colonne($pdo, 'moyen_transport', 'libelle', 'libelle');
+$sports = charger_options_colonne($pdo, 'sport', 'libelle', 'libelle');
+$modelesVoiture = charger_options_colonne($pdo, 'modele_voiture', 'libelle', 'libelle', $MODELES_VOITURE);
+$filieres = charger_options_colonne($pdo, 'filiere', 'nom', 'id', $FILIERES);
 
 if ($personne && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $champPost = static function (string $nom): string {
@@ -146,12 +129,12 @@ if ($personne && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':cp'             => $codePostal,
                 ':localite'       => $localite,
                 ':pays'           => $pays,
-                ':plateformes'    => implode(', ', $plateformes),
-                ':applications'   => implode(', ', $applications),
+                ':plateformes'    => ecrire_liste_texte($plateformes),
+                ':applications'   => ecrire_liste_texte($applications),
                 ':transport'      => $transport,
                 ':sport'          => $sport,
-                ':activites'      => implode(', ', $activites),
-                ':modules'        => implode(', ', $modules),
+                ':activites'      => ecrire_liste_texte($activites),
+                ':modules'        => ecrire_liste_texte($modules),
                 ':groupe_sanguin' => $groupeSanguin,
                 ':modele_voiture' => $modeleVoiture,
                 ':nat'            => $natCode,
@@ -169,12 +152,12 @@ if ($personne && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'code_postal'      => $codePostal,
                 'localite'         => $localite,
                 'pays'             => $pays,
-                'plateformes'      => implode(', ', $plateformes),
-                'applications'     => implode(', ', $applications),
+                'plateformes'      => ecrire_liste_texte($plateformes),
+                'applications'     => ecrire_liste_texte($applications),
                 'transport'        => $transport,
                 'sport'            => $sport,
-                'activites'        => implode(', ', $activites),
-                'modules'          => implode(', ', $modules),
+                'activites'        => ecrire_liste_texte($activites),
+                'modules'          => ecrire_liste_texte($modules),
                 'groupe_sanguin'   => $groupeSanguin,
                 'modele_voiture'   => $modeleVoiture,
                 'nationalite_code' => $natCode,
@@ -194,22 +177,22 @@ if ($personne && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $personne['code_postal']    = $codePostal;
         $personne['localite']       = $localite;
         $personne['pays']           = $pays;
-        $personne['plateformes']    = implode(', ', $plateformes);
-        $personne['applications']   = implode(', ', $applications);
+        $personne['plateformes']    = ecrire_liste_texte($plateformes);
+        $personne['applications']   = ecrire_liste_texte($applications);
         $personne['transport']      = $transport;
         $personne['sport']          = $sport;
-        $personne['activites']      = implode(', ', $activites);
-        $personne['modules']        = implode(', ', $modules);
+        $personne['activites']      = ecrire_liste_texte($activites);
+        $personne['modules']        = ecrire_liste_texte($modules);
         $personne['groupe_sanguin'] = $groupeSanguin;
         $personne['modele_voiture'] = $modeleVoiture;
         $personne['nationalite_code'] = $natCode;
     }
 }
 
-$plateformesSelectionnees = array_filter(array_map('trim', explode(',', $personne['plateformes'] ?? '')));
-$applicationsSelectionnees = array_filter(array_map('trim', explode(',', $personne['applications'] ?? '')));
-$activitesSelectionnees = array_filter(array_map('trim', explode(',', $personne['activites'] ?? '')));
-$modulesSelectionnes = array_filter(array_map('trim', explode(',', $personne['modules'] ?? '')));
+$plateformesSelectionnees = lire_liste_texte($personne['plateformes'] ?? null);
+$applicationsSelectionnees = lire_liste_texte($personne['applications'] ?? null);
+$activitesSelectionnees = lire_liste_texte($personne['activites'] ?? null);
+$modulesSelectionnes = lire_liste_texte($personne['modules'] ?? null);
 
 $base = '../';
 $titre = 'Modifier une personne';
