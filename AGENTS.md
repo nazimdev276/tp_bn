@@ -6,115 +6,91 @@
   - [Environment (XAMPP/LAMPP)](#environment-xampplampp)
   - [Page contract (easy to break)](#page-contract-easy-to-break)
   - [Structure & flow](#structure-flow)
+  - [Shared CRUD helpers (includes/operations/)](#shared-crud-helpers-includesoperations)
+  - [Database quirks](#database-quirks)
   - [Module Voyager (Voyage)](#module-voyager-voyage)
   - [Module Bulletin de Notes (Bulletin / Note)](#module-bulletin-de-notes-bulletin--note)
+  - [Module Enseignants (Enseignant)](#module-enseignants-enseignant)
   - [Conventions](#conventions)
 
 <!--toc:end-->
 
-Vanilla PHP 8 multi-page app (university TP01/PAW). No framework, no Composer, no tests, CI, lint, or build config — do not invent commands.
+Vanilla PHP 8 multi-page app (university TP01/PAW). No framework, no Composer, no tests, no CI, no lint/build config — do not invent commands.
 
 ## Environment (XAMPP/LAMPP)
 
-- Served from `/opt/lampp/htdocs/tp01` → `http://localhost/tp01/`.
-- Control services: `/opt/lampp/lampp start|restart|stop` (Apache :80, MySQL :3306). `lampp status` may wrongly report MySQL stopped (pid file permissions); check `ss -ltn | grep 3306`.
-- MySQL CLI is **not** on `PATH`: `/opt/lampp/bin/mysql -uroot` (no password).
-- Database `tp01_paw`; schema + seed data in `database/database.sql` (idempotent: `CREATE IF NOT EXISTS` + `INSERT IGNORE`). Re-import with `/opt/lampp/bin/mysql -uroot < database/database.sql`.
-- Only verification available: `find . -name '*.php' -exec php -l {} \;` (PHP 8.5 CLI at `/usr/bin/php`).
+- Served from `/opt/lampp/htdocs/tp_bn` → `http://localhost/tp_bn/` (Apache `DocumentRoot` is `/opt/lampp/htdocs`).
+- A separate sibling app lives at `/opt/lampp/htdocs/tp01`. It is a different checkout — do not edit it from this repo.
+- Both apps point at the **same** MySQL database `tp01_paw` (`config/database.php`). Data written here is visible in `tp01` and vice versa.
+- Services: `/opt/lampp/lampp start|restart|stop` (Apache :80, MySQL :3306). `lampp status` can wrongly report MySQL stopped; check `ss -ltn | grep 3306`.
+- MySQL CLI is not on `PATH`: `/opt/lampp/bin/mysql -uroot` (no password).
+- Re-import schema + seed: `/opt/lampp/bin/mysql -uroot < database/database.sql` (idempotent: `CREATE IF NOT EXISTS` / `INSERT IGNORE`).
+- Only verification step: `find . -name '*.php' -not -path './.git/*' -exec php -l {} \;` (PHP 8.5 at `/usr/bin/php`).
 
 ## Page contract (easy to break)
 
-Every page must set, **before** `require includes/header.php`:
+Every page that renders HTML must set, **before** `require includes/header.php`:
 
-- `$base` — relative path to app root: `''` in `index.php`, `'../'` in subdirectories. Used by header for CSS/JS/menu links.
+- `$base` — relative path to app root: `''` at root, `'../'` in subdirectories. Drives CSS/JS/menu links.
 - `$titre` — page title.
 
-`includes/header.php` calls `h()`, so `includes/fonctions.php` must be loaded first. `header.php`/`footer.php` are half-page includes, not layout wrappers — a page with no `$base`/`$titre` renders broken links silently.
+`includes/header.php` calls `h()`, so `includes/fonctions.php` must be loaded first. `header.php`/`footer.php` are half-page includes, not layout wrappers.
+
+**Nav highlighting is an exact string match.** `header.php` holds `$titresEtudiants`, `$titresEnseignants`, `$titresModules`, `$titresVoyages`, `$titresBulletin`, `$titresTables` and compares `$titre` against them. A new page with a new title renders fine but silently loses its active menu state — add the title to the right array. Currently unmatched: `filiere/etudiants.php` ("Étudiants par filière"), `filiere/statistiques.php` ("Statistiques de réussite par filière"), and `transport/enregistrer.php` ("Enregistrement du moyen de transport" vs the listed `"Enregistrement transport"`).
 
 ## Structure & flow
 
-- One file per action, no router/front controller. `personne/` (Étudiants), `voyage/` (Voyager), `enseignant/`, `module/`, `nationalite/`, `transport/`, `sport/`, and `filiere/` use separate form, POST handler, and list pages.
-- The form's buttons route via `formaction` to different handlers: `enregistrer.php` (save), `afficher_php.php` (echo only), `liste.php` (GET), `supprimer.php` (delete). Keep this pattern; don't merge into one endpoint.
-- `config/database.php` is the single PDO connection (exceptions on, `FETCH_ASSOC`). Pages `require_once` it; never open a second connection.
-- Nationalité, moyen de transport, sport, filière, et modèle de voiture dropdowns are loaded from their respective database tables.
-- `plateformes`, `applications`, `activites`, `modules`, `modele_voiture`, and `travel_methodes` are comma-joined strings in single columns — not join tables.
-- FK `personne.nationalite_code → nationalite(code)` with `ON DELETE RESTRICT`.
-- FK `voyager.nationalite_code → nationalite(code)` with `ON DELETE SET NULL`.
-- FK `voyager.etudiant_id → personne(id)` with `ON DELETE SET NULL`.
-- The Étudiants page (`personne/`) and the Voyage page (`voyage/`) are separate modules; changes to Voyage must not modify `personne/`.
+- One file per action, no router/front controller. Modules: `personne/` (Étudiants), `enseignant/`, `module/`, `voyage/`, `bulletin/`, `filiere/`, plus reference tables `nationalite/`, `sport/`, `transport/` (transport + voiture), reachable through `tables.php`.
+- Forms route buttons with `formaction`: `enregistrer.php` (save), `afficher_php.php` (echo only), `liste.php` (GET), `supprimer.php` (delete). Keep this pattern; don't merge into one endpoint.
+- `config/database.php` is the single PDO connection (exceptions on, `FETCH_ASSOC`). `require_once` it; never open a second connection.
+- `includes/fonctions.php` is the shared bootstrap: it pulls in `includes/operations/*` and defines `h()`, `post_liste()`, `enregistrer_image()`, `assurer_schema_note()`.
+- Two handler styles coexist: `enseignant/`, `module/`, `filiere/` use the shared helpers (`enregistrer_avec_id()`, `supprimer_par_id()`); `personne/`, `voyage/`, `bulletin/` use hand-written SQL because they upsert by form ID, handle photos, or touch `note`. Match the module you are editing; don't refactor one into the other.
+- `personne/modifier.php` is a full edit page (linked from `personne/liste.php`). `voyage/modifier.php` and `bulletin/modifier.php` are redirects back into their form with query params.
+- `voyage/formulaire.php` and `bulletin/formulaire.php` are one-line aliases that `require` the main page.
+- `filiere/` holds the CRUD quartet plus `etudiants.php` (students of one filière with their notes) and `statistiques.php` (pass/fail stats per filière). Both are read-only views, not edit forms.
+
+## Shared CRUD helpers (`includes/operations/`)
+
+- `enregistrer_avec_id($pdo, $table, $valeurs, $id, $modifier)` returns `['status' => ..., 'id' => ...]` with statuses `inserted`, `updated`, `unchanged`, `missing_id`, `not_found`. With `$modifier = false` and a non-null `$id` it upserts: updates if the row exists, otherwise inserts with that explicit ID.
+- `supprimer_par_id($pdo, $table, $id)` returns `deleted`, `missing`, or `invalid`.
+- `charger_options_colonne($pdo, $table, $colonne, $ordre, $defaut)` loads dropdown values from a table, falling back to the static array when the table is empty.
+- `lire_liste_texte()` / `ecrire_liste_texte()` split/join the comma-separated columns.
+- The DB helpers validate table/column names against `^[a-z_]+$` and interpolate them into SQL. They cannot target names containing digits or uppercase, and `enregistrer_avec_id()`/`supprimer_par_id()` assume an `id` primary key. The reference tables (`nationalite` keyed by `code`, `sport`/`moyen_transport`/`modele_voiture` keyed by `libelle`) therefore use hand-written INSERTs instead.
+
+## Database quirks
+
+- `voyage` is a **view** over `voyager` (`CREATE OR REPLACE VIEW voyage AS SELECT * FROM voyager`). Read from either; write only to `voyager`.
+- `assurer_schema_note($pdo)` creates/migrates the `note` table at runtime and syncs `note.nationalite_code` from `personne`. Call it right after the DB require on any page touching `note`. `bulletin/modifier.php`, `bulletin/supprimer.php`, and `enseignant/etudiants.php` currently query `note` without it.
+- Filière is denormalized by name: `personne.filiere`, `module.filiere`, and `enseignant.filiere` are `VARCHAR`, not FKs to `filiere.nom`. Renaming a filière does not cascade.
+- `plateformes`, `applications`, `activites`, `modules`, `modele_voiture`, `travel_methodes` are comma-joined strings in single columns, not join tables.
+- FKs: `personne.nationalite_code → nationalite(code)` RESTRICT; `voyager.nationalite_code` and `voyager.etudiant_id` SET NULL; `note.etudiant_id → personne(id)` CASCADE; `note.module_id → module(id)` RESTRICT; `note` has `UNIQUE (etudiant_id, module_id)`.
+- `moyen_transport`, `sport`, `modele_voiture` are referenced by `libelle` (no FK). `filiere.nom` is UNIQUE; `module.code_module` is not.
 
 ## Module Voyager (Voyage)
 
-- **Database Table**: `voyager` (with MySQL view `voyage` pointing to `voyager`).
-  - Contains student fields: `id`, `etudiant_id`, `numero`, `civilite`, `nom_prenom`, `filiere`, `adresse`, `code_postal`, `localite`, `pays`, `plateformes`, `applications`, `transport`, `sport`, `activites`, `modules`, `groupe_sanguin`, `modele_voiture`, `nationalite_code`, `photo`.
-  - Plus 3 unique Voyage features:
-    1. `travel_methodes` (Train, Car, Flight) — checkboxes.
-    2. `travel_with` (Alone, With someone, With family) — radio buttons.
-    3. `description` — big textarea for comments.
-- **Field Visibility**:
-  - Visible fields in Voyage form & list table: `numero`, `civilite`, `nom_prenom`, `filiere`, `adresse`, `pays` + the 3 unique Voyage features (`travel_methodes`, `travel_with`, `description`).
-  - All other student fields (`code_postal`, `localite`, `plateformes`, `applications`, `transport`, `sport`, `modele_voiture`, `groupe_sanguin`, `modules`, `activites`, `nationalite`, `photo`) are hidden by default in the form and collapsed/toggleable, and omitted from the main table columns in `liste.php`.
-- **Search by ID**:
-  - Searching by ID in `voyage/voyage.php` looks up the ID in both `voyager` and `personne`.
-  - It **prints the complete informations** of the student searched for (all fields) + the 3 Voyage features in a dedicated printable card/sheet, and pre-fills the Voyage form.
-  - An "Imprimer (Print)" button triggers `window.print()` with custom print styling (hiding navigation and extraneous controls).
-- **Files in `voyage/`**:
-  - `voyage.php` (form + ID search + print card).
-  - `formulaire.php` (alias / include of `voyage.php`).
-  - `enregistrer.php` (validates and inserts/updates in `voyager`).
-  - `liste.php` (table showing only the specified columns + search by ID).
-  - `afficher_php.php` (outputs all student + voyage data via POST).
-  - `details.php` (printable full sheet of any voyage record).
-  - `supprimer.php` (POST deletion handler).
-  - `modifier.php` (redirects to edit).
-  - Symlink `/tp01/voyager` points to `/tp01/voyage` for seamless routing.
+- Table `voyager`; symlink `voyager` → `voyage` (tracked in git) so both URLs work.
+- Visible in the form and `liste.php`: `numero`, `civilite`, `nom_prenom`, `filiere`, `adresse`, `pays`, plus the three Voyage-only fields `travel_methodes` (checkboxes), `travel_with` (radio), `description` (textarea).
+- All other student fields are hidden behind a collapsed section in the form and omitted from the list table, but are still stored and shown on the printable detail sheet.
+- Searching by ID or `numero` in `voyage/voyage.php` checks both `voyager` and `personne`, prints the full record in a printable card, and pre-fills the form. `details.php` is the standalone printable sheet.
+- `voyage/` is intentionally separate from `personne/`; changes to Voyage must not modify `personne/`.
 
 ## Module Bulletin de Notes (Bulletin / Note)
 
-- **Database Table**: `note`.
-  - Fields: `id`, `etudiant_id`, `module_id`, `note`, `date_saisie`.
-  - FK `note.etudiant_id → personne(id)` with `ON DELETE CASCADE`.
-  - FK `note.module_id → module(id)` with `ON DELETE RESTRICT`.
-  - Contrainte unique `uk_etudiant_module UNIQUE (etudiant_id, module_id)` pour empêcher les doublons de note pour un même étudiant et même module.
-- **Formulaire & Fonctionnalités**:
-  - Recherche étudiant par ID ou Numéro étudiant (`numero`), affichage automatique de ses informations (numéro, civilité, nom/prénom, filière) et de sa photo (`#cadre-photo`).
-  - Sélection de module depuis la table `module` avec affichage automatique de son code module et coefficient.
-  - Saisie de la note (entre 0 et 20).
-  - Trois boutons d'action : `Enregistrer` (nouvelle note), `Modifier` (mise à jour d'une note existante), `Supprimer` (suppression après confirmation).
-  - Tableau récapitulatif des notes de l'étudiant recherché avec calcul automatique de la moyenne générale et impression (`window.print()`).
-- **Fichiers dans `bulletin/`**:
-  - `bulletin.php` (formulaire + recherche étudiant + affichage photo & relevé).
-  - `formulaire.php` (alias / include de `bulletin.php`).
-  - `enregistrer.php` (contrôle et insertion / mise à jour).
-  - `modifier.php` (redirection pour modification préremplie).
-  - `supprimer.php` (suppression sécurisée par POST).
-  - `liste.php` (liste globale des notes avec recherche et impression).
-  - Symlink `/tp01/note` pointe vers `/tp01/bulletin`.
+- Table `note`; symlink `note` → `bulletin`.
+- Search a student by ID or `numero`, show their info and photo, pick a module (auto-shows code and coefficient), enter a note from 0 to 20.
+- Three actions: Enregistrer (insert), Modifier (update), Supprimer (POST delete). The recap table computes the coefficient-weighted average and prints via `window.print()`.
+- `bulletin.php` is the form/search page; `afficher_bulletin.php` renders the printable bulletin.
 
 ## Module Enseignants (Enseignant)
 
-- **Database Table**: `enseignant`.
-  - Fields: `id`, `numero`, `civilite`, `nom_prenom`, `adresse`, `date_naissance`, `lieu_naissance`, `pays`, `grade`, `specialite`, `filiere`, `modules`.
-  - `filiere` : choix unique sélectionné dynamiquement depuis la table `filiere`.
-  - `modules` : dropdown à choix multiples relié à la table `module`, stocké sous forme de liste séparée par des virgules (ex: `BDD, POO`).
-- **Tableau des Enseignants (`liste.php`)**:
-  - Affiche les colonnes `Filière` et `Modules` sous forme de badges.
-  - Bouton d'action `Liste Des Etudiants` par enseignant.
-- **Consultation des Étudiants par Classe (`etudiants.php`)**:
-  - Accessible via le bouton `Liste Des Etudiants` (dans le formulaire et dans la liste).
-  - Affiche le tableau des étudiants inscrits dans la filière de l'enseignant pour les modules enseignés avec les colonnes : `Id`, `image`, `nom / prenom`, `Module`, `Coeff`, `Note`, `Filiere`. Le coefficient provient directement de la table `module` et se met à jour automatiquement en cas de modification.
-  - Affiche la photo de l'étudiant, sa note avec code couleur admis/ajourné, la filière, et propose un filtre par module ainsi qu'un bouton d'impression.
-- **Fichiers dans `enseignant/`**:
-  - `enseignant.php` (formulaire avec choix unique Filière et dropdown choix multiples Modules).
-  - `enregistrer.php` (validation et insertion / mise à jour des champs dont `filiere` et `modules`).
-  - `liste.php` (liste des enseignants avec colonnes Filière, Modules et bouton `Liste Des Etudiants`).
-  - `etudiants.php` (vue de la classe avec les colonnes Id, image, nom / prenom, Module, Note, Filiere).
-  - `supprimer.php` (suppression sécurisée par POST).
+- Table `enseignant`. `filiere` is a single `<select>` loaded from the `filiere` table; `modules` is a custom multi-select (`name="modules[]"`, `#modules-dropdown` in `enseignant/enseignant.php`) stored as a comma-separated string of `code_module` values.
+- `enseignant/etudiants.php` is the per-teacher class view (students in the teacher's filière, with module, coefficient, note, photo). `filiere/etudiants.php` is a separate view by filière — they are not the same page.
 
 ## Conventions
 
-- Validation exists in **both** `js/script.js` and PHP (`enregistrer.php`), with duplicate messages and length rules — update both together. JS validation is skipped for `formnovalidate` buttons, so PHP is the real gate.
-- `post_liste()` in `includes/fonctions.php` whitelists checkbox values against `includes/donnees.php` arrays; new option values must be added there _and_ in the JS validator.
-- Always output through `h()` (XSS) and use prepared statements (existing code does).
-- File uploads go only through `enregistrer_image()` (2 MB cap, `finfo` MIME check, random hex name). `uploads/` must stay writable, and its `.htaccess` blocks PHP execution — never remove it.
+- Fixed option lists (civilités, pays, plateformes, applications, activités, modules, groupes sanguins, travel methods/companions) live in `includes/donnees.php`; forms iterate those arrays and `post_liste()` whitelists against them. Add a new option there, not in a form. Filière, transport, sport, and modèle de voiture are loaded from their tables with the `donnees.php` array as fallback.
+- Validation exists in both `js/script.js` and the PHP handler, with duplicated French messages. JS validation is skipped for `formnovalidate` buttons, so PHP is the real gate. Update both when a rule changes.
+- Output through `h()`; use prepared statements.
+- Uploads go only through `enregistrer_image()` (2 MB cap, `finfo` MIME check, random hex name). `uploads/` must stay writable and its `.htaccess` blocks PHP execution — never remove it. `uploads/` is in `.gitignore`, but older images are still tracked.
 - Comments, validation messages, and UI strings are French; keep new text French.
+- `.github/copilot-instructions.md` mirrors much of this file; update both when conventions change.
