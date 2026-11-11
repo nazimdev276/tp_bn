@@ -109,19 +109,8 @@ if ($noteIdParam > 0 && empty($selectedModuleId)) {
     }
 }
 
-$moyenneEtudiant = null;
-if ($notesEtudiant) {
-    $totalCoefficientsEtudiant = 0;
-    $totalPointsEtudiant = 0.0;
-    foreach ($notesEtudiant as $noteEtudiant) {
-        $coefficientEtudiant = (int)$noteEtudiant['coefficient'];
-        $totalCoefficientsEtudiant += $coefficientEtudiant;
-        $totalPointsEtudiant += (float)$noteEtudiant['note'] * $coefficientEtudiant;
-    }
-    if ($totalCoefficientsEtudiant > 0) {
-        $moyenneEtudiant = $totalPointsEtudiant / $totalCoefficientsEtudiant;
-    }
-}
+$calculsMoyenneEtudiant = calculer_moyenne_ponderee($notesEtudiant);
+$moyenneEtudiant = $calculsMoyenneEtudiant['moyenne'];
 
 // Calculer les données du module courant
 $currentCodeModule = '';
@@ -354,8 +343,6 @@ require __DIR__ . '/../includes/header.php';
             </thead>
             <tbody>
                 <?php
-                $totalCoeff = 0;
-                $totalPoints = 0;
                 $noteMin = null;
                 $notesMin = [];
                 $noteMax = null;
@@ -364,8 +351,6 @@ require __DIR__ . '/../includes/header.php';
                     $noteVal = (float)$ne['note'];
                     $coeffVal = (int)$ne['coefficient'];
                     $ponderee = $noteVal * $coeffVal;
-                    $totalCoeff += $coeffVal;
-                    $totalPoints += $ponderee;
                     if ($noteMin === null || $noteVal < $noteMin) {
                         $noteMin = $noteVal;
                         $notesMin = [$ne];
@@ -397,7 +382,7 @@ require __DIR__ . '/../includes/header.php';
                         <td><?= number_format($ponderee, 2, ',', ' ') ?></td>
                         <td><?= h($ne['date_saisie']) ?></td>
                         <td>
-                            <a href="bulletin.php?id=<?= h($etudiant['id']) ?>&module_id=<?= h($ne['module_id']) ?>&note_id=<?= h($ne['note_id']) ?>" style="font-weight: 600; text-decoration: underline;">Modifier</a>
+                            <a href="bulletin.php?mode=id&id=<?= h($etudiant['id']) ?>&module_id=<?= h($ne['module_id']) ?>&note_id=<?= h($ne['note_id']) ?>" style="font-weight: 600; text-decoration: underline;">Modifier</a>
                             &nbsp;|&nbsp;
                             <form method="post" action="supprimer.php" style="display: inline;" onsubmit="return confirm('Supprimer la note du module <?= h($ne['designation']) ?> ?');">
                                 <input type="hidden" name="id" value="<?= h($ne['note_id']) ?>">
@@ -412,10 +397,10 @@ require __DIR__ . '/../includes/header.php';
             <tfoot>
                 <tr style="background: var(--bg-subtle); font-weight: bold;">
                     <td colspan="2" style="text-align: right;">Total :</td>
-                    <td><?= $totalCoeff ?></td>
+                    <td><?= number_format($calculsMoyenneEtudiant['total_coefficients'], 0, ',', ' ') ?></td>
                     <td>Moyenne :</td>
-                    <td colspan="4" style="font-size: 15px; color: <?= ($totalCoeff > 0 && ($totalPoints / $totalCoeff) >= 10) ? '#15803d' : '#b91c1c' ?>;">
-                        <?= $totalCoeff > 0 ? number_format($totalPoints / $totalCoeff, 2, ',', ' ') . ' / 20' : '—' ?>
+                    <td colspan="4" style="font-size: 15px; color: <?= ($moyenneEtudiant !== null && $moyenneEtudiant >= 10) ? '#15803d' : '#b91c1c' ?>;">
+                        <?= $moyenneEtudiant !== null ? number_format($moyenneEtudiant, 2, ',', ' ') . ' / 20' : '—' ?>
                     </td>
                 </tr>
                 <tr>

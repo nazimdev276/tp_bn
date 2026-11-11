@@ -9,6 +9,7 @@ $termeRecherche = trim((string)($_GET['q'] ?? $_GET['id'] ?? ''));
 $modeRecherche = in_array($_GET['mode'] ?? 'all', ['all', 'id', 'numero'], true) ? ($_GET['mode'] ?? 'all') : 'all';
 $erreurRecherche = false;
 $notes = [];
+$notesParEtudiant = [];
 $resultatsEtudiants = [];
 
 $sql = '
@@ -82,16 +83,21 @@ try {
         $etudiantIds = array_values(array_unique(array_column($notes, 'etudiant_id')));
         $placeholders = implode(',', array_fill(0, count($etudiantIds), '?'));
         $stmtMoyennes = $pdo->prepare("
-            SELECT n.etudiant_id,
-                   SUM(n.note * m.coefficient) / NULLIF(SUM(m.coefficient), 0) AS moyenne
+            SELECT n.etudiant_id, n.note, m.coefficient
             FROM note n
             JOIN module m ON m.id = n.module_id
             WHERE n.etudiant_id IN ($placeholders)
-            GROUP BY n.etudiant_id
         ");
         $stmtMoyennes->execute($etudiantIds);
         foreach ($stmtMoyennes->fetchAll() as $resultat) {
-            $resultatsEtudiants[(int)$resultat['etudiant_id']] = $resultat['moyenne'];
+            $idEtudiant = (int)$resultat['etudiant_id'];
+            $notesParEtudiant[$idEtudiant][] = [
+                'note' => $resultat['note'],
+                'coefficient' => $resultat['coefficient'],
+            ];
+        }
+        foreach ($notesParEtudiant as $idEtudiant => $notesEtudiant) {
+            $resultatsEtudiants[$idEtudiant] = calculer_moyenne_ponderee($notesEtudiant)['moyenne'];
         }
     }
 } catch (PDOException $e) {
@@ -183,7 +189,7 @@ require __DIR__ . '/../includes/header.php';
                         </strong>
                     </td>
                     <td>
-                        <a href="bulletin.php?id=<?= h($n['etudiant_id']) ?>&module_id=<?= h($n['module_id']) ?>&note_id=<?= h($n['note_id']) ?>">Modifier</a>
+                        <a href="bulletin.php?mode=id&id=<?= h($n['etudiant_id']) ?>&module_id=<?= h($n['module_id']) ?>&note_id=<?= h($n['note_id']) ?>">Modifier</a>
                         &nbsp;|&nbsp;
                         <a href="afficher_bulletin.php?numero=<?= h(urlencode((string)$n['numero'])) ?>">Bulletin</a>
                         &nbsp;|&nbsp;

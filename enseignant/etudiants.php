@@ -3,6 +3,8 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/fonctions.php';
 
+assurer_schema_note($pdo);
+
 // Récupération des paramètres
 $idParam        = isset($_GET['id']) ? (int)$_GET['id'] : (isset($_GET['enseignant_id']) ? (int)$_GET['enseignant_id'] : 0);
 $filiereParam   = trim((string)($_GET['filiere'] ?? ''));
@@ -111,8 +113,7 @@ if (!empty($etudiants) && !empty($moduleIds)) {
 // Construction des lignes du tableau (combinaison étudiant x module enseigné)
 $lignesTableau = [];
 $sommeNotes = 0;
-$sommeNotesPonderees = 0;
-$totalCoefficients = 0;
+$notesPourMoyennePonderee = [];
 $nbNotes = 0;
 
 foreach ($etudiants as $etd) {
@@ -137,8 +138,10 @@ foreach ($etudiants as $etd) {
             $coeff = isset($mod['coefficient']) ? (int)$mod['coefficient'] : 1;
             if ($note !== null) {
                 $sommeNotes += $note;
-                $sommeNotesPonderees += ($note * $coeff);
-                $totalCoefficients += $coeff;
+                $notesPourMoyennePonderee[] = [
+                    'note' => $note,
+                    'coefficient' => $coeff,
+                ];
                 $nbNotes++;
             }
             $lignesTableau[] = [
@@ -158,7 +161,10 @@ foreach ($etudiants as $etd) {
 }
 
 $moyenneClasse = $nbNotes > 0 ? round($sommeNotes / $nbNotes, 2) : null;
-$moyennePonderee = $totalCoefficients > 0 ? round($sommeNotesPonderees / $totalCoefficients, 2) : null;
+$calculsMoyennePonderee = calculer_moyenne_ponderee($notesPourMoyennePonderee);
+$moyennePonderee = $calculsMoyennePonderee['moyenne'] !== null
+    ? round($calculsMoyennePonderee['moyenne'], 2)
+    : null;
 
 $base = '../';
 $titre = 'Liste Des Etudiants';
@@ -321,7 +327,7 @@ require __DIR__ . '/../includes/header.php';
                         <?php else: ?>
                             <span style="color:var(--text-light); font-size:13px;">—</span>
                             <?php if ($row['module_id']): ?>
-                                <a href="../bulletin/bulletin.php?id=<?= h($row['id']) ?>&module_id=<?= h($row['module_id']) ?>" style="font-size:11px; margin-left:4px; color:var(--primary); text-decoration:none;" title="Saisir la note dans le Bulletin">+ Noter</a>
+                                <a href="../bulletin/bulletin.php?mode=id&id=<?= h($row['id']) ?>&module_id=<?= h($row['module_id']) ?>" style="font-size:11px; margin-left:4px; color:var(--primary); text-decoration:none;" title="Saisir la note dans le Bulletin">+ Noter</a>
                             <?php endif; ?>
                         <?php endif; ?>
                     </td>

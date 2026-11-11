@@ -136,6 +136,15 @@ if (!$erreurs && $etudiant && $module && $nationalite && $noteVal !== null) {
     }
 }
 
+if ($succes && $action === 'modifier') {
+    header(
+        'Location: bulletin.php?mode=id&id=' . urlencode((string)$etudiant['id'])
+        . '&module_id=' . urlencode((string)$module['id'])
+        . '&succes=' . urlencode($messageSucces)
+    );
+    exit;
+}
+
 $base  = '../';
 $titre = 'Enregistrement note';
 require __DIR__ . '/../includes/header.php';
@@ -146,7 +155,7 @@ if ($erreurs) {
     }
     $urlRetour = 'bulletin.php';
     if ($etudiantId) {
-        $urlRetour .= '?id=' . urlencode((string)$etudiantId);
+        $urlRetour .= '?mode=id&id=' . urlencode((string)$etudiantId);
         if ($moduleId) {
             $urlRetour .= '&module_id=' . urlencode((string)$moduleId);
         }
@@ -154,7 +163,7 @@ if ($erreurs) {
     echo '<p><a href="' . h($urlRetour) . '">Retour au formulaire du bulletin</a> | <a href="bulletin.php">Nouveau bulletin</a></p>';
 } else {
     echo '<p class="ok">' . h($messageSucces) . '</p>';
-    $urlFiche = 'bulletin.php?id=' . urlencode((string)$etudiant['id']);
+    $urlFiche = 'bulletin.php?mode=id&id=' . urlencode((string)$etudiant['id']);
     echo '<p><a href="' . h($urlFiche) . '">Consulter le relevé de l\'étudiant</a> | <a href="bulletin.php">Saisir une autre note</a> | <a href="liste.php">Affichage Liste</a></p>';
 }
 

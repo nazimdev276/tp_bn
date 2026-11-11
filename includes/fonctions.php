@@ -12,6 +12,33 @@ function h($texte): string
     return htmlspecialchars((string)$texte, ENT_QUOTES, 'UTF-8');
 }
 
+function calculer_moyenne_ponderee(array $notes): array
+{
+    $totalCoefficients = 0.0;
+    $totalPoints = 0.0;
+
+    foreach ($notes as $note) {
+        if (
+            !is_array($note)
+            || !isset($note['note'], $note['coefficient'])
+            || !is_numeric($note['note'])
+            || !is_numeric($note['coefficient'])
+        ) {
+            throw new InvalidArgumentException('Chaque note doit contenir une note et un coefficient numériques.');
+        }
+
+        $coefficient = (float)$note['coefficient'];
+        $totalCoefficients += $coefficient;
+        $totalPoints += (float)$note['note'] * $coefficient;
+    }
+
+    return [
+        'total_coefficients' => $totalCoefficients,
+        'total_points' => $totalPoints,
+        'moyenne' => $totalCoefficients > 0 ? $totalPoints / $totalCoefficients : null,
+    ];
+}
+
 function assurer_schema_note(PDO $pdo): void
 {
     $pdo->exec("CREATE TABLE IF NOT EXISTS note (

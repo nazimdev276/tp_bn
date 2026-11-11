@@ -248,3 +248,96 @@ FROM (
 ) AS demo
 JOIN personne p ON p.numero = demo.numero AND p.nom_prenom = demo.nom_prenom
 JOIN module m ON m.code_module = demo.code_module;
+
+-- Jeu de démonstration des PV : 4 étudiants par filière, deux modules chacun
+DROP TEMPORARY TABLE IF EXISTS demo_pv_students;
+CREATE TEMPORARY TABLE demo_pv_students (
+  numero VARCHAR(10) PRIMARY KEY,
+  civilite VARCHAR(15) NOT NULL,
+  nom_prenom VARCHAR(80) NOT NULL,
+  filiere VARCHAR(50) NOT NULL,
+  note_a DECIMAL(4, 2) NOT NULL,
+  note_b DECIMAL(4, 2) NOT NULL
+) ENGINE=MEMORY;
+
+INSERT INTO demo_pv_students (numero, civilite, nom_prenom, filiere, note_a, note_b) VALUES
+  ('980001', 'Monsieur', 'Démo PV TC Homme 1', 'TC', 9.51, 10.07),
+  ('980002', 'Madame', 'Démo PV TC Femme 1', 'TC', 14.99, 15.69),
+  ('980003', 'Monsieur', 'Démo PV TC Homme 2', 'TC', 12.00, 13.00),
+  ('980004', 'Mademoiselle', 'Démo PV TC Femme 2', 'TC', 17.00, 11.00),
+  ('980005', 'Monsieur', 'Démo PV 2SC Homme 1', '2SC', 8.00, 9.00),
+  ('980006', 'Madame', 'Démo PV 2SC Femme 1', '2SC', 14.00, 16.00),
+  ('980007', 'Monsieur', 'Démo PV 2SC Homme 2', '2SC', 11.00, 12.00),
+  ('980008', 'Mademoiselle', 'Démo PV 2SC Femme 2', '2SC', 18.00, 17.00),
+  ('980009', 'Monsieur', 'Démo PV 3ISIL Homme 1', '3ISIL', 10.00, 10.00),
+  ('980010', 'Madame', 'Démo PV 3ISIL Femme 1', '3ISIL', 19.00, 18.00),
+  ('980011', 'Monsieur', 'Démo PV 3ISIL Homme 2', '3ISIL', 6.00, 12.00),
+  ('980012', 'Mademoiselle', 'Démo PV 3ISIL Femme 2', '3ISIL', 13.00, 15.00),
+  ('980013', 'Monsieur', 'Démo PV 3SI Homme 1', '3SI', 7.00, 10.00),
+  ('980014', 'Madame', 'Démo PV 3SI Femme 1', '3SI', 15.00, 15.00),
+  ('980015', 'Monsieur', 'Démo PV 3SI Homme 2', '3SI', 11.00, 14.00),
+  ('980016', 'Mademoiselle', 'Démo PV 3SI Femme 2', '3SI', 16.00, 13.00),
+  ('980017', 'Monsieur', 'Démo PV M1 Homme 1', 'M1', 9.00, 13.00),
+  ('980018', 'Madame', 'Démo PV M1 Femme 1', 'M1', 16.00, 17.00),
+  ('980019', 'Monsieur', 'Démo PV M1 Homme 2', 'M1', 12.00, 9.00),
+  ('980020', 'Mademoiselle', 'Démo PV M1 Femme 2', 'M1', 18.00, 14.00),
+  ('980021', 'Monsieur', 'Démo PV M2RSSI Homme 1', 'M2RSSI', 8.00, 11.00),
+  ('980022', 'Madame', 'Démo PV M2RSSI Femme 1', 'M2RSSI', 17.00, 18.00),
+  ('980023', 'Monsieur', 'Démo PV M2RSSI Homme 2', 'M2RSSI', 14.00, 12.00),
+  ('980024', 'Mademoiselle', 'Démo PV M2RSSI Femme 2', 'M2RSSI', 10.00, 16.00),
+  ('980025', 'Monsieur', 'Démo PV M2WIC Homme 1', 'M2WIC', 11.00, 9.00),
+  ('980026', 'Madame', 'Démo PV M2WIC Femme 1', 'M2WIC', 18.00, 16.00),
+  ('980027', 'Monsieur', 'Démo PV M2WIC Homme 2', 'M2WIC', 13.00, 15.00),
+  ('980028', 'Mademoiselle', 'Démo PV M2WIC Femme 2', 'M2WIC', 7.00, 12.00),
+  ('980029', 'Monsieur', 'Démo PV M2ISI Homme 1', 'M2ISI', 14.00, 15.00),
+  ('980030', 'Madame', 'Démo PV M2ISI Femme 1', 'M2ISI', 13.00, 17.00),
+  ('980031', 'Monsieur', 'Démo PV M2ISI Homme 2', 'M2ISI', 16.00, 12.00),
+  ('980032', 'Mademoiselle', 'Démo PV M2ISI Femme 2', 'M2ISI', 11.00, 10.00),
+  ('980033', 'Monsieur', 'Démo PV 1ING Homme 1', '1ING', 9.00, 10.00),
+  ('980034', 'Madame', 'Démo PV 1ING Femme 1', '1ING', 15.00, 18.00),
+  ('980035', 'Monsieur', 'Démo PV 1ING Homme 2', '1ING', 13.00, 11.00),
+  ('980036', 'Mademoiselle', 'Démo PV 1ING Femme 2', '1ING', 17.00, 16.00),
+  ('980037', 'Monsieur', 'Démo PV 2ING Homme 1', '2ING', 12.00, 14.00),
+  ('980038', 'Madame', 'Démo PV 2ING Femme 1', '2ING', 18.00, 19.00),
+  ('980039', 'Monsieur', 'Démo PV 2ING Homme 2', '2ING', 10.00, 8.00),
+  ('980040', 'Mademoiselle', 'Démo PV 2ING Femme 2', '2ING', 16.00, 15.00);
+
+INSERT INTO personne
+  (numero, civilite, nom_prenom, adresse, code_postal, localite, pays, filiere, nationalite_code)
+SELECT d.numero, d.civilite, d.nom_prenom, 'Adresse de démonstration PV', '00000',
+       'Sidi Bel Abbès', 'Algérie', d.filiere, 'DZ'
+FROM demo_pv_students d
+WHERE NOT EXISTS (
+  SELECT 1 FROM personne p WHERE p.numero = d.numero
+);
+
+INSERT INTO module (code_module, designation, coefficient, volume_horaire, filiere)
+SELECT d.code_module, d.designation, d.coefficient, 45, d.filiere
+FROM (
+  SELECT CONCAT('DEMO-PV-', filiere, '-A') AS code_module,
+         CONCAT('PV Démo ', filiere, ' — Module A') AS designation,
+         4 AS coefficient, filiere
+  FROM (SELECT DISTINCT filiere FROM demo_pv_students) filieres
+  UNION ALL
+  SELECT CONCAT('DEMO-PV-', filiere, '-B'),
+         CONCAT('PV Démo ', filiere, ' — Module B'),
+         3, filiere
+  FROM (SELECT DISTINCT filiere FROM demo_pv_students) filieres
+) d
+WHERE NOT EXISTS (
+  SELECT 1 FROM module m
+  WHERE m.code_module = d.code_module AND m.filiere = d.filiere
+);
+
+INSERT IGNORE INTO note (etudiant_id, module_id, nationalite_code, note)
+SELECT p.id, m.id, p.nationalite_code, d.note_a
+FROM demo_pv_students d
+JOIN personne p ON p.numero = d.numero AND p.nom_prenom = d.nom_prenom
+JOIN module m ON m.code_module = CONCAT('DEMO-PV-', d.filiere, '-A') AND m.filiere = d.filiere
+UNION ALL
+SELECT p.id, m.id, p.nationalite_code, d.note_b
+FROM demo_pv_students d
+JOIN personne p ON p.numero = d.numero AND p.nom_prenom = d.nom_prenom
+JOIN module m ON m.code_module = CONCAT('DEMO-PV-', d.filiere, '-B') AND m.filiere = d.filiere;
+
+DROP TEMPORARY TABLE demo_pv_students;

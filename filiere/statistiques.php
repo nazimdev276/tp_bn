@@ -72,34 +72,31 @@ try {
                 'numero' => $row['numero'],
                 'nom_prenom' => $row['nom_prenom'],
                 'nationalite_code' => $row['nationalite_code'],
-                'total_coefficients' => 0,
-                'total_points' => 0.0,
                 'notes' => [],
             ];
         }
         if ($row['note'] !== null && $row['coefficient'] !== null) {
-            $coefficient = (int)$row['coefficient'];
-            $etudiants[$idEtudiant]['total_coefficients'] += $coefficient;
-            $etudiants[$idEtudiant]['total_points'] += (float)$row['note'] * $coefficient;
             $etudiants[$idEtudiant]['notes'][] = [
                 'module' => $row['module'],
-                'note' => (float)$row['note'],
+                'note' => $row['note'],
+                'coefficient' => $row['coefficient'],
             ];
         }
     }
 
     foreach ($etudiants as $etudiant) {
         $filiereEtudiant = $etudiant['filiere'];
-        $etudiant['moyenne'] = null;
+        $calculsMoyenne = calculer_moyenne_ponderee($etudiant['notes']);
+        $etudiant['moyenne'] = $calculsMoyenne['moyenne'];
         $etudiant['resultat'] = 'Non évalué';
-        if ($etudiant['total_coefficients'] <= 0) {
+        if ($etudiant['moyenne'] === null) {
             $statistiques[$filiereEtudiant]['non_evalues']++;
             $totalNonEvalues++;
             $detailsEtudiants[] = $etudiant;
             continue;
         }
 
-        $moyenne = $etudiant['total_points'] / $etudiant['total_coefficients'];
+        $moyenne = $etudiant['moyenne'];
         $etudiant['moyenne'] = $moyenne;
         if ($moyenne >= 10) {
             $statistiques[$filiereEtudiant]['admis']++;

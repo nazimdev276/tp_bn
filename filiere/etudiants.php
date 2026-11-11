@@ -47,8 +47,7 @@ if ($termeRecherche !== '') {
                         'nom_prenom' => $row['nom_prenom'],
                         'filiere' => $row['filiere'],
                         'photo' => $row['photo'],
-                        'total_coefficients' => 0,
-                        'total_points' => 0.0,
+                        'notes' => [],
                         'note_min' => null,
                         'modules_min' => [],
                         'note_max' => null,
@@ -61,9 +60,10 @@ if ($termeRecherche !== '') {
                 }
 
                 $note = (float)$row['note'];
-                $coefficient = (int)$row['coefficient'];
-                $etudiants[$id]['total_coefficients'] += $coefficient;
-                $etudiants[$id]['total_points'] += $note * $coefficient;
+                $etudiants[$id]['notes'][] = [
+                    'note' => $row['note'],
+                    'coefficient' => $row['coefficient'],
+                ];
 
                 if ($etudiants[$id]['note_min'] === null || $note < $etudiants[$id]['note_min']) {
                     $etudiants[$id]['note_min'] = $note;
@@ -126,9 +126,8 @@ require __DIR__ . '/../includes/header.php';
             </thead>
             <tbody>
                 <?php foreach ($etudiants as $etudiant):
-                    $moyenne = $etudiant['total_coefficients'] > 0
-                        ? $etudiant['total_points'] / $etudiant['total_coefficients']
-                        : null;
+                    $calculsMoyenne = calculer_moyenne_ponderee($etudiant['notes']);
+                    $moyenne = $calculsMoyenne['moyenne'];
                 ?>
                     <tr>
                         <td><?= h($etudiant['numero']) ?></td>

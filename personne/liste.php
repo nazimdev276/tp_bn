@@ -105,7 +105,7 @@ require __DIR__ . '/../includes/header.php';
                 </td>
                 <td>
                     <a href="modifier.php?id=<?= h($p['id']) ?>">Modifier</a>
-                    <a href="../bulletin/bulletin.php?id=<?= h($p['id']) ?>">Bulletin</a>
+                    <a href="../bulletin/bulletin.php?mode=id&id=<?= h($p['id']) ?>">Bulletin</a>
                     <form method="post" action="supprimer.php" onsubmit="return confirm('Supprimer définitivement la personne <?= h($p['nom_prenom']) ?> (ID <?= h($p['id']) ?>) ?');">
                         <input type="hidden" name="id" value="<?= h($p['id']) ?>">
                         <button type="submit">Supprimer</button>

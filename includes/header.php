@@ -31,6 +31,9 @@ $titresBulletin = [
     'Modifier une note'
 ];
 
+$titresPV = ['PV', 'PV GLOBAL'];
+$titresStatistiques = ['Statistiques', 'Statistiques de réussite par filière'];
+
 $titresTables = [
     'Sous-menu Tables',
     'Gestion des nationalités', 'Liste des nationalités', 'Enregistrement nationalité',
@@ -46,6 +49,8 @@ $isEnseignantsActive = in_array($titre, $titresEnseignants, true);
 $isModulesActive     = in_array($titre, $titresModules, true);
 $isVoyagesActive     = in_array($titre, $titresVoyages, true);
 $isBulletinActive    = in_array($titre, $titresBulletin, true);
+$isPVActive          = in_array($titre, $titresPV, true);
+$isStatistiquesActive = in_array($titre, $titresStatistiques, true);
 $isTablesActive      = in_array($titre, $titresTables, true);
 ?>
 <!DOCTYPE html>
@@ -69,6 +74,8 @@ $isTablesActive      = in_array($titre, $titresTables, true);
         <a href="<?= $base ?>module/module.php" class="<?= $isModulesActive ? 'active' : '' ?>">Modules</a>
         <a href="<?= $base ?>voyage/voyage.php" class="<?= $isVoyagesActive ? 'active' : '' ?>">Voyage</a>
         <a href="<?= $base ?>bulletin/bulletin.php" class="<?= $isBulletinActive ? 'active' : '' ?>">Bulletin de Notes</a>
+        <a href="<?= $base ?>pv/pv.php" class="<?= $isPVActive ? 'active' : '' ?>">PV</a>
+        <a href="<?= $base ?>statistiques.php" class="<?= $isStatistiquesActive ? 'active' : '' ?>">Statistiques</a>
         <div class="nav-dropdown <?= $isTablesActive ? 'active' : '' ?>">
             <a href="<?= $base ?>tables.php" class="nav-dropdown-btn <?= $isTablesActive ? 'active' : '' ?>" id="btn-tables-menu" aria-haspopup="true" aria-expanded="false">Tables ▾</a>
             <div class="nav-dropdown-content" id="submenu-tables">

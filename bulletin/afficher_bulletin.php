@@ -9,8 +9,6 @@ $termeRecherche = trim((string)($_GET['recherche'] ?? $_GET['numero'] ?? $_GET['
 $etudiant = null;
 $notes = [];
 $erreur = null;
-$totalCoefficients = 0;
-$totalPoints = 0.0;
 $noteMin = null;
 $noteMax = null;
 $modulesMin = [];
@@ -57,10 +55,7 @@ if ($termeRecherche !== '') {
         $notes = $stmt->fetchAll();
 
         foreach ($notes as $note) {
-            $coefficient = (int)$note['coefficient'];
             $noteValue = (float)$note['note'];
-            $totalCoefficients += $coefficient;
-            $totalPoints += $noteValue * $coefficient;
             if ($noteMin === null || $noteValue < $noteMin) {
                 $noteMin = $noteValue;
                 $modulesMin = [$note['designation']];
@@ -77,7 +72,10 @@ if ($termeRecherche !== '') {
     }
 }
 
-$moyenne = $totalCoefficients > 0 ? $totalPoints / $totalCoefficients : 0;
+$calculsMoyenne = calculer_moyenne_ponderee($notes);
+$totalCoefficients = $calculsMoyenne['total_coefficients'];
+$totalPoints = $calculsMoyenne['total_points'];
+$moyenne = $calculsMoyenne['moyenne'] ?? 0;
 
 $base = '../';
 $titre = 'Bulletin de Notes';
