@@ -53,7 +53,7 @@ require __DIR__ . '/../includes/header.php';
 </form>
 
 <p>
-    <a href="statistiques.php" class="btn-link" style="display:inline-block; padding:9px 18px; background:var(--primary); color:#062b29; border-radius:var(--radius-md); font-weight:600; text-decoration:none;">
+    <a href="choix_statistiques.php" class="btn-link" style="display:inline-block; padding:9px 18px; background:var(--primary); color:#062b29; border-radius:var(--radius-md); font-weight:600; text-decoration:none;">
         Voir les statistiques de réussite
     </a>
 </p>
